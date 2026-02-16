@@ -1,13 +1,13 @@
 # claude-code-profiles installer for Windows/PowerShell
 # Usage:
-#   irm https://raw.githubusercontent.com/PegasusHeavyIndustries/claude-code-profiles/main/install.ps1 | iex
+#   irm https://raw.githubusercontent.com/pegasusheavy/claude-code-profiles/main/install.ps1 | iex
 #
 # Environment variables:
 #   INSTALL_DIR  - Override the install directory (default: $env:LOCALAPPDATA\Programs\claude-profile)
 
 $ErrorActionPreference = 'Stop'
 
-$RepoBase = 'https://raw.githubusercontent.com/PegasusHeavyIndustries/claude-code-profiles/main'
+$RepoBase = 'https://raw.githubusercontent.com/pegasusheavy/claude-code-profiles/main'
 $Scripts = @('claude-profile.ps1', 'claude-profile.cmd')
 
 function Write-Step($msg) { Write-Host "`n=> $msg" -ForegroundColor Cyan }

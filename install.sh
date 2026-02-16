@@ -3,13 +3,13 @@ set -e
 
 # claude-code-profiles installer
 # Usage:
-#   curl -fsSL https://raw.githubusercontent.com/PegasusHeavyIndustries/claude-code-profiles/main/install.sh | sh
-#   wget -qO- https://raw.githubusercontent.com/PegasusHeavyIndustries/claude-code-profiles/main/install.sh | sh
+#   curl -fsSL https://raw.githubusercontent.com/pegasusheavy/claude-code-profiles/main/install.sh | sh
+#   wget -qO- https://raw.githubusercontent.com/pegasusheavy/claude-code-profiles/main/install.sh | sh
 #
 # Environment variables:
 #   INSTALL_DIR  - Override the install directory (default: ~/.local/bin or /usr/local/bin)
 
-REPO_BASE="https://raw.githubusercontent.com/PegasusHeavyIndustries/claude-code-profiles/main"
+REPO_BASE="https://raw.githubusercontent.com/pegasusheavy/claude-code-profiles/main"
 SCRIPT_NAME="claude-profile"
 
 # --- Helpers ---

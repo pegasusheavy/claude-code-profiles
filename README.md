@@ -9,13 +9,13 @@ Each profile is a complete, isolated Claude Code configuration directory (settin
 **Linux / macOS / WSL:**
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/PegasusHeavyIndustries/claude-code-profiles/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/pegasusheavy/claude-code-profiles/main/install.sh | sh
 ```
 
 **Windows (PowerShell):**
 
 ```powershell
-irm https://raw.githubusercontent.com/PegasusHeavyIndustries/claude-code-profiles/main/install.ps1 | iex
+irm https://raw.githubusercontent.com/pegasusheavy/claude-code-profiles/main/install.ps1 | iex
 ```
 
 The installer downloads the appropriate scripts and adds them to your PATH.
@@ -100,7 +100,7 @@ If you prefer not to use the install scripts:
 
 ```sh
 # Download
-curl -fsSL https://raw.githubusercontent.com/PegasusHeavyIndustries/claude-code-profiles/main/claude-profile -o ~/.local/bin/claude-profile
+curl -fsSL https://raw.githubusercontent.com/pegasusheavy/claude-code-profiles/main/claude-profile -o ~/.local/bin/claude-profile
 chmod +x ~/.local/bin/claude-profile
 ```
 
@@ -110,8 +110,8 @@ chmod +x ~/.local/bin/claude-profile
 # Download both scripts
 $dir = "$env:LOCALAPPDATA\Programs\claude-profile"
 New-Item -ItemType Directory -Force -Path $dir | Out-Null
-Invoke-WebRequest -Uri "https://raw.githubusercontent.com/PegasusHeavyIndustries/claude-code-profiles/main/claude-profile.ps1" -OutFile "$dir\claude-profile.ps1"
-Invoke-WebRequest -Uri "https://raw.githubusercontent.com/PegasusHeavyIndustries/claude-code-profiles/main/claude-profile.cmd" -OutFile "$dir\claude-profile.cmd"
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/pegasusheavy/claude-code-profiles/main/claude-profile.ps1" -OutFile "$dir\claude-profile.ps1"
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/pegasusheavy/claude-code-profiles/main/claude-profile.cmd" -OutFile "$dir\claude-profile.cmd"
 # Add to PATH (current user)
 $path = [Environment]::GetEnvironmentVariable('Path', 'User')
 if ($path -notlike "*$dir*") {
