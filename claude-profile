@@ -1,8 +1,14 @@
 #!/bin/sh
 set -e
 
-PROFILES_DIR="${HOME}/.claude/profiles"
-DEFAULT_FILE="${PROFILES_DIR}/.default"
+# --- Platform-aware data directory ---
+# Uses XDG_DATA_HOME on Linux/macOS, falls back to ~/.local/share
+# On macOS, XDG is still respected if set; otherwise uses ~/.local/share
+# (We don't use ~/Library/Application Support because this script targets
+#  terminal users who expect Unix conventions)
+
+DATA_DIR="${XDG_DATA_HOME:-${HOME}/.local/share}/claude-profiles"
+DEFAULT_FILE="${DATA_DIR}/.default"
 
 # --- Helper functions ---
 
@@ -34,8 +40,20 @@ Examples:
     claude-profile default work
     claude-profile                  # launches claude with "work" profile
     claude-profile use work -p      # launches claude -p with "work" profile
-    claude-profile --resume         # launches claude --resume with default profile
+    claude-profile --resume         # launches claude --resume with default
 EOF
+}
+
+# Validate that a profile name is safe (no path traversal, no dotfiles)
+validate_name() {
+    case "$1" in
+        "")       die "profile name must not be empty" ;;
+        ..|.*|*/*) die "invalid profile name '$1': must not contain '/' or start with '.'" ;;
+    esac
+    # Allow only letters, digits, hyphens, underscores
+    case "$1" in
+        *[!A-Za-z0-9_-]*) die "invalid profile name '$1': use only letters, digits, hyphens, underscores" ;;
+    esac
 }
 
 # Resolve a profile name to its full directory path.
@@ -54,7 +72,7 @@ resolve_profile_dir() {
             die "default profile file is empty. Set one with: claude-profile default <name>"
         fi
     fi
-    _rp_dir="${PROFILES_DIR}/${_rp_name}"
+    _rp_dir="${DATA_DIR}/${_rp_name}"
     if [ ! -d "$_rp_dir" ]; then
         die "profile '${_rp_name}' does not exist. Create it with: claude-profile create ${_rp_name}"
     fi
@@ -65,7 +83,8 @@ resolve_profile_dir() {
 
 cmd_create() {
     [ -z "${1:-}" ] && die "usage: claude-profile create <name>"
-    _cc_dir="${PROFILES_DIR}/$1"
+    validate_name "$1"
+    _cc_dir="${DATA_DIR}/$1"
     if [ -d "$_cc_dir" ]; then
         die "profile '$1' already exists"
     fi
@@ -75,7 +94,7 @@ cmd_create() {
 }
 
 cmd_list() {
-    if [ ! -d "$PROFILES_DIR" ]; then
+    if [ ! -d "$DATA_DIR" ]; then
         printf 'No profiles found. Create one with: claude-profile create <name>\n'
         return
     fi
@@ -84,7 +103,7 @@ cmd_list() {
         _cl_default=$(cat "$DEFAULT_FILE")
     fi
     _cl_found=0
-    for _cl_entry in "$PROFILES_DIR"/*/; do
+    for _cl_entry in "$DATA_DIR"/*/; do
         [ -d "$_cl_entry" ] || continue
         _cl_name=$(basename "$_cl_entry")
         _cl_found=1
@@ -101,7 +120,6 @@ cmd_list() {
 
 cmd_default() {
     if [ -z "${1:-}" ]; then
-        # Show current default
         if [ -f "$DEFAULT_FILE" ]; then
             cat "$DEFAULT_FILE"
             printf '\n'
@@ -110,11 +128,12 @@ cmd_default() {
         fi
         return
     fi
-    _cd_dir="${PROFILES_DIR}/$1"
+    validate_name "$1"
+    _cd_dir="${DATA_DIR}/$1"
     if [ ! -d "$_cd_dir" ]; then
         die "profile '$1' does not exist. Create it with: claude-profile create $1"
     fi
-    mkdir -p "$PROFILES_DIR"
+    mkdir -p "$DATA_DIR"
     printf '%s' "$1" > "$DEFAULT_FILE"
     printf 'Default profile set to: %s\n' "$1"
 }
@@ -128,10 +147,7 @@ cmd_use() {
     [ -z "${1:-}" ] && die "usage: claude-profile use <name> [claude args...]"
     _cu_name="$1"
     shift
-    _cu_dir="${PROFILES_DIR}/${_cu_name}"
-    if [ ! -d "$_cu_dir" ]; then
-        die "profile '${_cu_name}' does not exist. Create it with: claude-profile create ${_cu_name}"
-    fi
+    _cu_dir=$(resolve_profile_dir "$_cu_name")
     export CLAUDE_CONFIG_DIR="$_cu_dir"
     exec claude "$@"
 }
@@ -139,7 +155,8 @@ cmd_use() {
 cmd_delete() {
     [ -z "${1:-}" ] && die "usage: claude-profile delete <name>"
     _cdel_name="$1"
-    _cdel_dir="${PROFILES_DIR}/${_cdel_name}"
+    validate_name "$_cdel_name"
+    _cdel_dir="${DATA_DIR}/${_cdel_name}"
     if [ ! -d "$_cdel_dir" ]; then
         die "profile '${_cdel_name}' does not exist"
     fi
@@ -149,7 +166,6 @@ cmd_delete() {
         [yY]|[yY][eE][sS])
             rm -rf "$_cdel_dir"
             printf 'Deleted profile: %s\n' "$_cdel_name"
-            # Clear default if it was this profile
             if [ -f "$DEFAULT_FILE" ]; then
                 _cdel_current=$(cat "$DEFAULT_FILE")
                 if [ "$_cdel_current" = "$_cdel_name" ]; then
