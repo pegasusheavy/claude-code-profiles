@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>claude-profile — Seamless Profile Management for Claude Code</title>
+  <meta name="description" content="Switch between Claude Code configurations effortlessly. Transparent profile resolution for work, personal, and project-specific setups.">
+  <meta property="og:title" content="claude-profile">
+  <meta property="og:description" content="Seamless profile management for Claude Code">
+  <meta property="og:type" content="website">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            dark:    { DEFAULT: '#1A1510', 50: '#272220', 100: '#302A27', 200: '#3A3330', 300: '#4A423E' },
+            cream:   { DEFAULT: '#F0E6DC', 50: '#FAF5F0', 100: '#F0E6DC', 200: '#D5C8BA', 300: '#9B8E82' },
+            terra:   { DEFAULT: '#D4845F', 50: '#F2D8C8', 100: '#E8B89A', 200: '#E09570', 300: '#D4845F', 400: '#C06A3F', 500: '#A05530' },
+          },
+          fontFamily: {
+            display: ['"Instrument Serif"', 'Georgia', 'serif'],
+            body:    ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
+            mono:    ['"JetBrains Mono"', 'Consolas', 'monospace'],
+          },
+        },
+      },
+    }
+  </script>
+
+  <style>
+    html { scroll-behavior: smooth; }
+
+    /* Noise texture overlay */
+    .noise::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      pointer-events: none;
+      opacity: 0.035;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+      background-repeat: repeat;
+      background-size: 256px 256px;
+    }
+
+    /* Hero background glow */
+    .hero-glow {
+      background:
+        radial-gradient(ellipse 60% 50% at 50% 0%, rgba(212,132,95,0.12) 0%, transparent 70%),
+        radial-gradient(ellipse 40% 40% at 80% 20%, rgba(212,132,95,0.06) 0%, transparent 60%),
+        radial-gradient(ellipse 30% 50% at 10% 30%, rgba(160,85,48,0.05) 0%, transparent 60%);
+    }
+
+    /* Scroll reveal */
+    .reveal {
+      opacity: 0;
+      transform: translateY(28px);
+      transition: opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1),
+                  transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .reveal-delay-1 { transition-delay: 0.1s; }
+    .reveal-delay-2 { transition-delay: 0.2s; }
+    .reveal-delay-3 { transition-delay: 0.3s; }
+    .reveal-delay-4 { transition-delay: 0.35s; }
+
+    /* Hero entrance stagger */
+    @keyframes hero-in {
+      from { opacity: 0; transform: translateY(24px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .hero-anim {
+      opacity: 0;
+      animation: hero-in 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+    .hero-anim-1 { animation-delay: 0.1s; }
+    .hero-anim-2 { animation-delay: 0.25s; }
+    .hero-anim-3 { animation-delay: 0.4s; }
+    .hero-anim-4 { animation-delay: 0.55s; }
+
+    /* Terminal typing cursor */
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50%      { opacity: 0; }
+    }
+    .cursor {
+      display: inline-block;
+      width: 8px;
+      height: 1.15em;
+      background: #D4845F;
+      vertical-align: text-bottom;
+      animation: blink 1s step-end infinite;
+      margin-left: 1px;
+    }
+
+    /* Terminal window chrome */
+    .terminal-dot {
+      width: 12px; height: 12px; border-radius: 50%;
+    }
+
+    /* Glow behind install box */
+    .install-glow {
+      box-shadow:
+        0 0 0 1px rgba(212,132,95,0.15),
+        0 4px 40px -8px rgba(212,132,95,0.2),
+        0 0 80px -20px rgba(212,132,95,0.1);
+    }
+
+    /* Feature card hover */
+    .feature-card {
+      transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+                  box-shadow 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+                  border-color 0.3s ease;
+    }
+    .feature-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 40px -12px rgba(212,132,95,0.15);
+      border-color: rgba(212,132,95,0.3);
+    }
+
+    /* Tab active underline */
+    .tab-btn { position: relative; }
+    .tab-btn::after {
+      content: '';
+      position: absolute;
+      bottom: -2px; left: 0; right: 0;
+      height: 2px;
+      background: #D4845F;
+      transform: scaleX(0);
+      transition: transform 0.25s ease;
+    }
+    .tab-btn.active::after {
+      transform: scaleX(1);
+    }
+
+    /* Copy tooltip */
+    .copy-tooltip {
+      opacity: 0;
+      transform: translateY(4px);
+      transition: opacity 0.2s, transform 0.2s;
+      pointer-events: none;
+    }
+    .copy-tooltip.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* Scrollbar styling */
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: #1A1510; }
+    ::-webkit-scrollbar-thumb { background: #3A3330; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #4A423E; }
+
+    /* Command table rows */
+    .cmd-row {
+      transition: background-color 0.15s ease;
+    }
+    .cmd-row:hover {
+      background-color: rgba(212,132,95,0.05);
+    }
+  </style>
+</head>
+
+<body class="noise bg-dark font-body text-cream antialiased">
+
+  <!-- Nav -->
+  <nav class="fixed top-0 inset-x-0 z-50 backdrop-blur-md bg-dark/80 border-b border-dark-200/50">
+    <div class="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+      <a href="#" class="font-display text-xl text-cream-50 tracking-tight">
+        claude-profile
+      </a>
+      <div class="flex items-center gap-8">
+        <a href="#features" class="hidden sm:block text-sm text-cream-300 hover:text-cream-50 transition-colors">Features</a>
+        <a href="#how-it-works" class="hidden sm:block text-sm text-cream-300 hover:text-cream-50 transition-colors">How It Works</a>
+        <a href="#commands" class="hidden sm:block text-sm text-cream-300 hover:text-cream-50 transition-colors">Commands</a>
+        <a href="#install" class="hidden sm:block text-sm text-cream-300 hover:text-cream-50 transition-colors">Install</a>
+        <a href="https://github.com/pegasusheavy/claude-code-profiles"
+           target="_blank" rel="noopener"
+           class="text-cream-300 hover:text-terra transition-colors text-lg"
+           aria-label="GitHub repository">
+          <i class="fa-brands fa-github"></i>
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <main>
+
+    <!-- Hero -->
+    <section class="hero-glow relative pt-40 pb-24 md:pt-48 md:pb-32 px-6">
+      <div class="max-w-3xl mx-auto text-center">
+        <h1 class="hero-anim hero-anim-1 font-display text-5xl sm:text-6xl md:text-7xl text-cream-50 leading-[1.1] mb-6">
+          claude-profile
+        </h1>
+        <p class="hero-anim hero-anim-2 font-display italic text-xl sm:text-2xl text-terra mb-8">
+          Seamless profile management for Claude Code
+        </p>
+        <p class="hero-anim hero-anim-3 text-cream-300 text-lg leading-relaxed max-w-xl mx-auto mb-12">
+          Switch between work and personal configurations, different MCP&nbsp;server setups,
+          or separate settings&nbsp;&mdash; without ever thinking about&nbsp;it.
+        </p>
+
+        <div class="hero-anim hero-anim-4 relative inline-block w-full max-w-xl">
+          <div class="install-glow relative flex items-center gap-3 bg-dark-50 rounded-xl px-5 py-4 border border-dark-200">
+            <span class="text-terra select-none shrink-0">$</span>
+            <code id="install-cmd" class="font-mono text-sm sm:text-base text-cream-50 overflow-x-auto whitespace-nowrap flex-1 text-left">curl -fsSL https://raw.githubusercontent.com/pegasusheavy/claude-code-profiles/main/install.sh | sh</code>
+            <button onclick="copyInstall(this)" class="relative shrink-0 text-cream-300 hover:text-terra transition-colors p-1" aria-label="Copy install command">
+              <i class="fa-regular fa-copy"></i>
+              <span class="copy-tooltip absolute -top-8 left-1/2 -translate-x-1/2 text-xs bg-dark-100 text-terra px-2 py-1 rounded whitespace-nowrap">Copied!</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Features -->
+    <section id="features" class="py-24 md:py-32 px-6">
+      <div class="max-w-6xl mx-auto">
+        <h2 class="reveal font-display text-3xl sm:text-4xl text-cream-50 text-center mb-4">
+          Why claude-profile?
+        </h2>
+        <p class="reveal reveal-delay-1 text-cream-300 text-center max-w-lg mx-auto mb-16">
+          Like <code class="font-mono text-sm text-terra/90">nvm</code> for Node or
+          <code class="font-mono text-sm text-terra/90">pyenv</code> for Python&nbsp;&mdash;
+          but for your Claude&nbsp;Code configuration.
+        </p>
+
+        <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          <div class="reveal reveal-delay-1 feature-card bg-dark-50 border border-dark-200 rounded-2xl p-6">
+            <div class="w-10 h-10 rounded-lg bg-terra/10 flex items-center justify-center mb-5">
+              <i class="fa-solid fa-wand-magic-sparkles text-terra"></i>
+            </div>
+            <h3 class="font-semibold text-cream-50 mb-2">Transparent</h3>
+            <p class="text-sm text-cream-300 leading-relaxed">
+              Just run <code class="font-mono text-xs text-terra/80">claude</code>.
+              Your default profile is automatically resolved&nbsp;&mdash; no special commands needed.
+            </p>
+          </div>
+
+          <div class="reveal reveal-delay-2 feature-card bg-dark-50 border border-dark-200 rounded-2xl p-6">
+            <div class="w-10 h-10 rounded-lg bg-terra/10 flex items-center justify-center mb-5">
+              <i class="fa-solid fa-layer-group text-terra"></i>
+            </div>
+            <h3 class="font-semibold text-cream-50 mb-2">Isolated</h3>
+            <p class="text-sm text-cream-300 leading-relaxed">
+              Each profile is a complete config directory&nbsp;&mdash; settings, credentials, MCP&nbsp;servers, history. Everything.
+            </p>
+          </div>
+
+          <div class="reveal reveal-delay-3 feature-card bg-dark-50 border border-dark-200 rounded-2xl p-6">
+            <div class="w-10 h-10 rounded-lg bg-terra/10 flex items-center justify-center mb-5">
+              <i class="fa-solid fa-terminal text-terra"></i>
+            </div>
+            <h3 class="font-semibold text-cream-50 mb-2">Shell Native</h3>
+            <p class="text-sm text-cream-300 leading-relaxed">
+              Lightweight shell functions for bash, zsh, and PowerShell. Plus cmd.exe batch support.
+            </p>
+          </div>
+
+          <div class="reveal reveal-delay-4 feature-card bg-dark-50 border border-dark-200 rounded-2xl p-6">
+            <div class="w-10 h-10 rounded-lg bg-terra/10 flex items-center justify-center mb-5">
+              <i class="fa-solid fa-feather text-terra"></i>
+            </div>
+            <h3 class="font-semibold text-cream-50 mb-2">Zero Overhead</h3>
+            <p class="text-sm text-cream-300 leading-relaxed">
+              No daemon. No background process. Just a function that sets an env&nbsp;var before calling claude.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- How It Works -->
+    <section id="how-it-works" class="py-24 md:py-32 px-6">
+      <div class="max-w-4xl mx-auto">
+        <h2 class="reveal font-display text-3xl sm:text-4xl text-cream-50 text-center mb-16">
+          How it works
+        </h2>
+
+        <div class="reveal reveal-delay-1">
+          <div class="bg-dark-50 rounded-2xl border border-dark-200 overflow-hidden">
+            <div class="flex items-center gap-2 px-5 py-3.5 border-b border-dark-200 bg-dark-100/50">
+              <span class="terminal-dot bg-[#FF5F57]/80"></span>
+              <span class="terminal-dot bg-[#FEBC2E]/80"></span>
+              <span class="terminal-dot bg-[#28C840]/80"></span>
+              <span class="text-xs text-cream-300 ml-3 font-mono">~</span>
+            </div>
+            <div id="terminal" class="px-5 py-5 font-mono text-sm leading-7 min-h-[280px]">
+              <div class="text-cream-300/50 select-none mb-2"># Set up your profiles once...</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid md:grid-cols-3 gap-6 mt-12">
+          <div class="reveal reveal-delay-1 text-center md:text-left">
+            <div class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-terra/15 text-terra text-sm font-semibold mb-3">1</div>
+            <h3 class="font-semibold text-cream-50 mb-1.5">Create profiles</h3>
+            <p class="text-sm text-cream-300 leading-relaxed">
+              One per context&nbsp;&mdash; work, personal, client&nbsp;projects, experiments.
+            </p>
+          </div>
+          <div class="reveal reveal-delay-2 text-center md:text-left">
+            <div class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-terra/15 text-terra text-sm font-semibold mb-3">2</div>
+            <h3 class="font-semibold text-cream-50 mb-1.5">Set a default</h3>
+            <p class="text-sm text-cream-300 leading-relaxed">
+              Your default profile is automatically applied every time you launch Claude&nbsp;Code.
+            </p>
+          </div>
+          <div class="reveal reveal-delay-3 text-center md:text-left">
+            <div class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-terra/15 text-terra text-sm font-semibold mb-3">3</div>
+            <h3 class="font-semibold text-cream-50 mb-1.5">Just use claude</h3>
+            <p class="text-sm text-cream-300 leading-relaxed">
+              No special commands. Run <code class="font-mono text-xs text-terra/80">claude</code> like you always have.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Commands -->
+    <section id="commands" class="py-24 md:py-32 px-6">
+      <div class="max-w-3xl mx-auto">
+        <h2 class="reveal font-display text-3xl sm:text-4xl text-cream-50 text-center mb-4">
+          Commands
+        </h2>
+        <p class="reveal reveal-delay-1 text-cream-300 text-center mb-12">
+          Everything you need to manage your profiles.
+        </p>
+
+        <div class="reveal reveal-delay-2 bg-dark-50 border border-dark-200 rounded-2xl overflow-hidden">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="border-b border-dark-200 text-left">
+                <th class="px-5 py-3.5 font-semibold text-cream-50">Command</th>
+                <th class="px-5 py-3.5 font-semibold text-cream-50">Description</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-dark-200/60">
+              <tr class="cmd-row">
+                <td class="px-5 py-3 font-mono text-xs text-terra whitespace-nowrap">claude-profile</td>
+                <td class="px-5 py-3 text-cream-300">Show current profile status</td>
+              </tr>
+              <tr class="cmd-row">
+                <td class="px-5 py-3 font-mono text-xs text-terra whitespace-nowrap">claude-profile use &lt;name&gt;</td>
+                <td class="px-5 py-3 text-cream-300">Switch to a profile for this session</td>
+              </tr>
+              <tr class="cmd-row">
+                <td class="px-5 py-3 font-mono text-xs text-terra whitespace-nowrap">claude-profile create &lt;name&gt;</td>
+                <td class="px-5 py-3 text-cream-300">Create a new profile</td>
+              </tr>
+              <tr class="cmd-row">
+                <td class="px-5 py-3 font-mono text-xs text-terra whitespace-nowrap">claude-profile list</td>
+                <td class="px-5 py-3 text-cream-300">List all profiles</td>
+              </tr>
+              <tr class="cmd-row">
+                <td class="px-5 py-3 font-mono text-xs text-terra whitespace-nowrap">claude-profile default [name]</td>
+                <td class="px-5 py-3 text-cream-300">Get or set the default profile</td>
+              </tr>
+              <tr class="cmd-row">
+                <td class="px-5 py-3 font-mono text-xs text-terra whitespace-nowrap">claude-profile which [name]</td>
+                <td class="px-5 py-3 text-cream-300">Show the config directory path</td>
+              </tr>
+              <tr class="cmd-row">
+                <td class="px-5 py-3 font-mono text-xs text-terra whitespace-nowrap">claude-profile delete &lt;name&gt;</td>
+                <td class="px-5 py-3 text-cream-300">Delete a profile (with confirmation)</td>
+              </tr>
+              <tr class="cmd-row">
+                <td class="px-5 py-3 font-mono text-xs text-terra whitespace-nowrap">claude-profile help</td>
+                <td class="px-5 py-3 text-cream-300">Show help</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- Install -->
+    <section id="install" class="py-24 md:py-32 px-6">
+      <div class="max-w-3xl mx-auto">
+        <h2 class="reveal font-display text-3xl sm:text-4xl text-cream-50 text-center mb-4">
+          Install
+        </h2>
+        <p class="reveal reveal-delay-1 text-cream-300 text-center mb-12">
+          One command. Restart your shell. Done.
+        </p>
+
+        <div class="reveal reveal-delay-2">
+          <div class="flex gap-6 border-b border-dark-200 mb-0">
+            <button class="tab-btn active text-sm font-medium pb-3 text-cream-50 transition-colors"
+                    onclick="switchTab('unix', this)">
+              <i class="fa-brands fa-linux mr-1.5 text-xs"></i>
+              <i class="fa-brands fa-apple mr-1.5 text-xs"></i>
+              Linux / macOS / WSL
+            </button>
+            <button class="tab-btn text-sm font-medium pb-3 text-cream-300 hover:text-cream-50 transition-colors"
+                    onclick="switchTab('win', this)">
+              <i class="fa-brands fa-windows mr-1.5 text-xs"></i>
+              Windows
+            </button>
+          </div>
+
+          <div id="tab-unix" class="tab-panel">
+            <div class="bg-dark-50 border border-dark-200 border-t-0 rounded-b-2xl p-5">
+              <div class="flex items-center gap-3">
+                <span class="text-terra select-none shrink-0">$</span>
+                <code id="install-unix" class="font-mono text-sm text-cream-50 overflow-x-auto whitespace-nowrap flex-1">curl -fsSL https://raw.githubusercontent.com/pegasusheavy/claude-code-profiles/main/install.sh | sh</code>
+                <button onclick="copyText('install-unix', this)" class="relative shrink-0 text-cream-300 hover:text-terra transition-colors p-1" aria-label="Copy">
+                  <i class="fa-regular fa-copy"></i>
+                  <span class="copy-tooltip absolute -top-8 left-1/2 -translate-x-1/2 text-xs bg-dark-100 text-terra px-2 py-1 rounded whitespace-nowrap">Copied!</span>
+                </button>
+              </div>
+              <p class="text-xs text-cream-300/60 mt-3">
+                Works with <code class="text-cream-300/70">bash</code> and <code class="text-cream-300/70">zsh</code>.
+                The installer downloads a script and adds a source line to your shell profile.
+              </p>
+            </div>
+          </div>
+
+          <div id="tab-win" class="tab-panel hidden">
+            <div class="bg-dark-50 border border-dark-200 border-t-0 rounded-b-2xl p-5">
+              <div class="flex items-center gap-3">
+                <span class="text-terra select-none shrink-0">PS&gt;</span>
+                <code id="install-win" class="font-mono text-sm text-cream-50 overflow-x-auto whitespace-nowrap flex-1">irm https://raw.githubusercontent.com/pegasusheavy/claude-code-profiles/main/install.ps1 | iex</code>
+                <button onclick="copyText('install-win', this)" class="relative shrink-0 text-cream-300 hover:text-terra transition-colors p-1" aria-label="Copy">
+                  <i class="fa-regular fa-copy"></i>
+                  <span class="copy-tooltip absolute -top-8 left-1/2 -translate-x-1/2 text-xs bg-dark-100 text-terra px-2 py-1 rounded whitespace-nowrap">Copied!</span>
+                </button>
+              </div>
+              <p class="text-xs text-cream-300/60 mt-3">
+                Works with PowerShell 5.1+ and pwsh 6+. Also installs <code class="text-cream-300/70">cmd.exe</code> batch support.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Session Override -->
+    <section class="pb-24 md:pb-32 px-6">
+      <div class="max-w-3xl mx-auto">
+        <div class="reveal bg-dark-50 border border-dark-200 rounded-2xl p-6 sm:p-8">
+          <div class="flex items-start gap-4">
+            <div class="w-10 h-10 rounded-lg bg-terra/10 flex items-center justify-center shrink-0 mt-0.5">
+              <i class="fa-solid fa-shuffle text-terra"></i>
+            </div>
+            <div>
+              <h3 class="font-semibold text-cream-50 mb-2">Session overrides</h3>
+              <p class="text-sm text-cream-300 leading-relaxed mb-4">
+                Need a different profile for one shell session? Override the default without changing it.
+              </p>
+              <div class="bg-dark rounded-lg px-4 py-3 font-mono text-sm border border-dark-200/50">
+                <span class="text-cream-300/50">$</span>
+                <span class="text-cream-50"> claude-profile use personal</span>
+                <br>
+                <span class="text-cream-300/60">Switched to profile: personal</span>
+                <br><br>
+                <span class="text-cream-300/50">$</span>
+                <span class="text-cream-50"> claude</span>
+                <span class="text-cream-300/60">  # uses "personal" until you close this shell</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="border-t border-dark-200/50 py-10 px-6">
+    <div class="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <span class="font-display text-lg text-cream-300">claude-profile</span>
+        <span class="text-cream-300/40">&middot;</span>
+        <span class="text-sm text-cream-300/60">MIT License</span>
+      </div>
+      <div class="flex items-center gap-5">
+        <a href="https://github.com/pegasusheavy/claude-code-profiles"
+           target="_blank" rel="noopener"
+           class="text-sm text-cream-300 hover:text-terra transition-colors">
+          <i class="fa-brands fa-github mr-1.5"></i>GitHub
+        </a>
+        <a href="https://github.com/pegasusheavy/claude-code-profiles/issues"
+           target="_blank" rel="noopener"
+           class="text-sm text-cream-300 hover:text-terra transition-colors">
+          <i class="fa-solid fa-bug mr-1.5"></i>Issues
+        </a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <script>
+    // Scroll Reveal
+    var revealObserver = new IntersectionObserver(
+      function (entries) {
+        entries.forEach(function (e) {
+          if (e.isIntersecting) {
+            e.target.classList.add('visible');
+            revealObserver.unobserve(e.target);
+          }
+        });
+      },
+      { threshold: 0.12 }
+    );
+    document.querySelectorAll('.reveal').forEach(function (el) {
+      revealObserver.observe(el);
+    });
+
+    // Copy to Clipboard
+    function copyInstall(btn) {
+      var text = document.getElementById('install-cmd').textContent;
+      copyToClipboard(text, btn);
+    }
+
+    function copyText(id, btn) {
+      var text = document.getElementById(id).textContent;
+      copyToClipboard(text, btn);
+    }
+
+    function copyToClipboard(text, btn) {
+      navigator.clipboard.writeText(text).then(function () {
+        var icon = btn.querySelector('i');
+        var tooltip = btn.querySelector('.copy-tooltip');
+        icon.className = 'fa-solid fa-check';
+        tooltip.classList.add('show');
+        setTimeout(function () {
+          icon.className = 'fa-regular fa-copy';
+          tooltip.classList.remove('show');
+        }, 2000);
+      });
+    }
+
+    // Install Tabs
+    function switchTab(id, btn) {
+      document.querySelectorAll('.tab-panel').forEach(function (p) {
+        p.classList.add('hidden');
+      });
+      document.querySelectorAll('.tab-btn').forEach(function (b) {
+        b.classList.remove('active', 'text-cream-50');
+        b.classList.add('text-cream-300');
+      });
+      document.getElementById('tab-' + id).classList.remove('hidden');
+      btn.classList.add('active', 'text-cream-50');
+      btn.classList.remove('text-cream-300');
+    }
+
+    // Terminal Typing Animation
+    var terminalLines = [
+      { type: 'cmd',    text: 'claude-profile create work' },
+      { type: 'output', text: 'Created profile: work' },
+      { type: 'blank' },
+      { type: 'cmd',    text: 'claude-profile create personal' },
+      { type: 'output', text: 'Created profile: personal' },
+      { type: 'blank' },
+      { type: 'cmd',    text: 'claude-profile default work' },
+      { type: 'output', text: 'Default profile set to: work' },
+      { type: 'blank' },
+      { type: 'cmd',    text: 'claude-profile list' },
+      { type: 'output', text: '>* work (default, active)' },
+      { type: 'output', text: '   personal' },
+    ];
+
+    var terminalStarted = false;
+
+    function makeSpan(className, text) {
+      var span = document.createElement('span');
+      span.className = className;
+      if (text !== undefined) span.textContent = text;
+      return span;
+    }
+
+    function runTerminal() {
+      if (terminalStarted) return;
+      terminalStarted = true;
+
+      var container = document.getElementById('terminal');
+      var lineIndex = 0;
+
+      function nextLine() {
+        if (lineIndex >= terminalLines.length) {
+          var cursorLine = document.createElement('div');
+          cursorLine.appendChild(makeSpan('text-terra select-none', '$ '));
+          cursorLine.appendChild(makeSpan('cursor'));
+          container.appendChild(cursorLine);
+          return;
+        }
+
+        var line = terminalLines[lineIndex];
+        lineIndex++;
+
+        if (line.type === 'blank') {
+          var blank = document.createElement('div');
+          blank.textContent = '\u00A0';
+          container.appendChild(blank);
+          setTimeout(nextLine, 150);
+          return;
+        }
+
+        if (line.type === 'output') {
+          var out = document.createElement('div');
+          out.className = 'text-cream-300/70';
+          out.textContent = line.text;
+          container.appendChild(out);
+          setTimeout(nextLine, 200);
+          return;
+        }
+
+        // Typing animation for commands
+        var el = document.createElement('div');
+        el.appendChild(makeSpan('text-terra select-none', '$ '));
+
+        var cmd = makeSpan('text-cream-50');
+        el.appendChild(cmd);
+
+        var cursor = makeSpan('cursor');
+        el.appendChild(cursor);
+
+        container.appendChild(el);
+
+        var charIndex = 0;
+        var text = line.text;
+
+        function typeChar() {
+          if (charIndex < text.length) {
+            cmd.textContent += text[charIndex];
+            charIndex++;
+            setTimeout(typeChar, 28 + Math.random() * 32);
+          } else {
+            cursor.remove();
+            setTimeout(nextLine, 350);
+          }
+        }
+        setTimeout(typeChar, 200);
+      }
+
+      setTimeout(nextLine, 600);
+    }
+
+    // Start terminal when section scrolls into view
+    var termSection = document.getElementById('how-it-works');
+    var termObserver = new IntersectionObserver(
+      function (entries) {
+        if (entries[0].isIntersecting) {
+          runTerminal();
+          termObserver.disconnect();
+        }
+      },
+      { threshold: 0.3 }
+    );
+    termObserver.observe(termSection);
+  </script>
+
+</body>
+</html>
