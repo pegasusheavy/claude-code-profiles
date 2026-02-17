@@ -1,19 +1,23 @@
 # Shell Function Activation Design
 
 **Date:** 2026-02-16
-**Status:** Approved
+**Status:** Approved (v2)
 
 ## Problem
 
 `claude-profile use <name>` currently launches Claude Code directly via `exec claude`.
-Users want to activate a profile (set `CLAUDE_CONFIG_DIR`) and then invoke `claude`
-separately with the regular command. A child process cannot modify its parent shell's
-environment, so the current script-based approach cannot set env vars in the user's shell.
+Users want to just run `claude` and have it automatically use the right profile — like
+how `nvm` and `pyenv` transparently resolve the right version of `node` or `python`.
 
 ## Decision
 
-Single-file shell function, modeled after nvm. The entire tool becomes a shell function
-that users source in their shell profile. No separate management script.
+Single-file shell function modeled after nvm. The file provides two functions:
+
+1. **`claude()`** — transparent wrapper that auto-resolves the default profile and
+   calls the real `claude` binary. Users never need to explicitly activate a profile.
+
+2. **`claude-profile()`** — profile management (create, list, delete, default, which,
+   help) plus optional session-level override via `use`.
 
 ## Architecture
 
@@ -22,96 +26,84 @@ User's shell (.bashrc/.zshrc / $PROFILE)
 │
 │  source claude-profile.sh       (POSIX)
 │  . claude-profile-init.ps1      (PowerShell)
-│  call claude-profile.cmd ...    (cmd — no function, script modified)
 │
 ▼
-claude-profile()  ← shell function, ALL commands handled here
+claude()  ← transparent wrapper
 │
-├── use <name>     → validates name, resolves path
-│                    → export CLAUDE_CONFIG_DIR=<resolved path>
-│                    → prints "Switched to profile: <name>"
+├── CLAUDE_CONFIG_DIR already set?  → call real claude
 │
-├── (bare)         → resolves default profile path
-│                    → export CLAUDE_CONFIG_DIR=<resolved path>
-│                    → prints "Switched to profile: <name> (default)"
+└── not set, default profile exists?
+    → export CLAUDE_CONFIG_DIR=<default profile path>
+    → call real claude
+
+claude-profile()  ← management + session override
 │
-├── create <name>  → creates profile directory
-├── list / ls      → lists profiles, marks active + default
-├── default [name] → get/set default profile
+├── (bare)         → show status (active profile, default, path)
+├── use <name>     → set CLAUDE_CONFIG_DIR for this session
+├── create <name>  → create profile directory
+├── list / ls      → list profiles (marks default + active)
+├── default [name] → get/set persistent default profile
 ├── which [name]   → print resolved config directory path
 ├── delete <name>  → interactive delete with confirmation
 └── help           → usage text
 ```
 
-After activation, plain `claude` reads `CLAUDE_CONFIG_DIR` automatically.
+## User Experience
+
+```sh
+# One-time setup
+claude-profile create work
+claude-profile default work
+
+# Daily use — just run claude
+claude                        # automatically uses "work" profile
+claude --resume               # all args pass through transparently
+claude -p "explain this"      # works exactly like normal
+
+# Optional: temporary session override
+claude-profile use personal   # sets CLAUDE_CONFIG_DIR for this shell
+claude                        # uses "personal" until shell closes
+
+# Check what's active
+claude-profile                # shows status
+```
 
 ## File Changes
 
 ### Replaced: `claude-profile` → `claude-profile.sh`
 
-The POSIX sh script is replaced by a POSIX-compatible shell function file.
+POSIX-compatible shell function file providing `claude()` and `claude-profile()`.
 
-**Key differences from the old script:**
-- Uses `return` (not `exit`) — `exit` would kill the user's shell.
-- `die()` becomes a print-only helper; callers do `_cp_die "msg"; return 1`.
-- No `set -e` (can't use it in functions sourced into interactive shells).
-- No `exec claude` anywhere — `use` and bare invocation set env vars only.
-- Same POSIX strictness: no `local`, no `[[ ]]`, no arrays, `printf` over `echo`.
-- Same `_cp_` variable prefix convention (was `_rp_`, `_cc_`, etc.).
-- `use` rejects extra arguments beyond the profile name (error).
-- Same validation rules: `[A-Za-z0-9_-]+`, reject `.`, `/`, `\`, `..`.
+- Uses `return` (not `exit`) throughout
+- No `set -e` (breaks sourced functions)
+- `_cp_` variable prefix to minimize namespace pollution
+- `claude()` wrapper: if CLAUDE_CONFIG_DIR unset, auto-resolve default, call real claude
+- `claude-profile use` sets CLAUDE_CONFIG_DIR for session override
+- Bare `claude-profile` shows status (active profile, default profile, config path)
+- Same validation: `[A-Za-z0-9_-]+`, reject `.`, `/`, `\`, `..`
 
 ### Replaced: `claude-profile.ps1` → `claude-profile-init.ps1`
 
-The PowerShell script is replaced by a function file, dot-sourced in `$PROFILE`.
-
-**Same approach:**
-- Defines a `claude-profile` function with all commands.
-- `use` and bare invocation set `$env:CLAUDE_CONFIG_DIR`.
-- Uses `return` instead of `exit`.
-- Same validation and profile resolution logic.
+PowerShell function file providing same two functions.
 
 ### Modified: `claude-profile.cmd`
 
-cmd cannot source functions. The batch script stays but is modified:
-
-- `cmd_use` and `cmd_launch_default` no longer launch `claude`.
-- `cmd_use` sets `CLAUDE_CONFIG_DIR` via `endlocal & set` and prints confirmation.
-- Bare invocation activates the default profile (sets env var).
-- Flag passthrough (`-*` → launch claude) is removed.
-- Users run `call claude-profile.cmd use work` (the `call` prefix is required
-  for env var changes to persist in the caller's cmd session).
+cmd cannot source functions. Script modified so:
+- `cmd_use` / bare invocation set CLAUDE_CONFIG_DIR without launching claude
+- Users run `call claude-profile.cmd use work` then `claude`
+- cmd users don't get the transparent `claude` wrapper
 
 ## Behavioral Changes
 
 | Before | After |
 |--------|-------|
-| `claude-profile` launches Claude with default profile | `claude-profile` sets CLAUDE_CONFIG_DIR for default profile |
+| `claude-profile` launches Claude with default profile | `claude-profile` shows status |
 | `claude-profile use work --resume` launches Claude | `claude-profile use work` sets env var; extra args are an error |
-| `claude-profile --resume` passes through to Claude | `claude-profile --resume` is an error (unknown command) |
-| Script is standalone, no setup needed | Users source the function file in shell profile |
-| `use` accepts extra args forwarded to claude | `use` takes exactly one arg (profile name) |
+| `claude` ignores profiles entirely | `claude` auto-resolves default profile transparently |
+| Must remember to activate profile each session | Just run `claude`, it figures it out |
 
 ## Install Changes
 
-### `install.sh`
-
-- Downloads `claude-profile.sh` (replaces `claude-profile`).
-- Detects user's shell (bash/zsh) and auto-appends source line to profile:
-  - bash: `~/.bashrc`
-  - zsh: `~/.zshrc`
-- Prints instructions to restart shell or `source` the profile.
-- If the source line already exists, skips (idempotent).
-
-### `install.ps1`
-
-- Downloads `claude-profile-init.ps1` (replaces `claude-profile.ps1`).
-- Auto-appends dot-source line to `$PROFILE`.
-- Creates `$PROFILE` if it doesn't exist.
-- Prints instructions to restart PowerShell.
-
-### README
-
-- Updated setup instructions for each platform.
-- New usage examples showing the activate-then-use workflow.
-- Documents `call` prefix requirement for cmd users.
+- `install.sh`: downloads to `~/.claude-profile/`, auto-appends source line to .bashrc/.zshrc
+- `install.ps1`: downloads, auto-appends dot-source to $PROFILE
+- Both are idempotent (skip if source line exists)
