@@ -3,12 +3,12 @@
 #   irm https://raw.githubusercontent.com/pegasusheavy/claude-code-profiles/main/install.ps1 | iex
 #
 # Environment variables:
-#   INSTALL_DIR  - Override the install directory (default: $env:LOCALAPPDATA\Programs\claude-profile)
+#   INSTALL_DIR  - Override the install directory (default: $env:LOCALAPPDATA\claude-profile)
 
 $ErrorActionPreference = 'Stop'
 
 $RepoBase = 'https://raw.githubusercontent.com/pegasusheavy/claude-code-profiles/main'
-$Scripts = @('claude-profile.ps1', 'claude-profile.cmd')
+$Scripts = @('claude-profile-init.ps1', 'claude-profile.cmd')
 
 function Write-Step($msg) { Write-Host "`n=> $msg" -ForegroundColor Cyan }
 function Write-Info($msg) { Write-Host "  $msg" }
@@ -24,7 +24,7 @@ function Get-InstallDir {
     if ($env:INSTALL_DIR) {
         return $env:INSTALL_DIR
     }
-    $default = Join-Path $env:LOCALAPPDATA 'Programs\claude-profile'
+    $default = Join-Path $env:LOCALAPPDATA 'claude-profile'
     return $default
 }
 
@@ -95,28 +95,32 @@ if (Test-OnPath $installDir) {
     Write-Info 'PATH updated. New terminal windows will pick this up automatically.'
 }
 
-# Create a convenience batch wrapper so 'claude-profile' works in cmd without extension
-$wrapperCmd = Join-Path $installDir 'claude-profile.cmd'
-if (Test-Path $wrapperCmd) {
-    Write-Info 'claude-profile.cmd already present.'
+Write-Step 'Configuring PowerShell profile...'
+$SourceLine = ". '$installDir\claude-profile-init.ps1'"
+$ProfilePath = $PROFILE
+
+if (-not (Test-Path $ProfilePath)) {
+    New-Item -ItemType File -Path $ProfilePath -Force | Out-Null
+    Write-Info "Created PowerShell profile: $ProfilePath"
 }
 
-# Create a convenience ps1 profile alias hint
+$ProfileContent = Get-Content $ProfilePath -Raw -ErrorAction SilentlyContinue
+if ($ProfileContent -and $ProfileContent.Contains('claude-profile-init.ps1')) {
+    Write-Info 'Source line already in $PROFILE'
+} else {
+    Add-Content -Path $ProfilePath -Value "`n# claude-profile: manage Claude Code configuration profiles`n$SourceLine"
+    Write-Info "Added source line to $ProfilePath"
+}
+
 Write-Step 'Done!'
 Write-Info ''
-Write-Info 'Quick start (PowerShell):'
-Write-Info '  claude-profile.ps1 create work     # Create a profile'
-Write-Info '  claude-profile.ps1 default work    # Set it as default'
-Write-Info '  claude-profile.ps1                 # Launch Claude with the profile'
+Write-Info 'Restart PowerShell (or run: . $PROFILE) then:'
 Write-Info ''
-Write-Info 'Quick start (cmd.exe):'
-Write-Info '  claude-profile create work'
-Write-Info '  claude-profile default work'
-Write-Info '  claude-profile'
+Write-Info '  claude-profile create work     # Create a profile'
+Write-Info '  claude-profile default work    # Set it as default'
+Write-Info '  claude                         # Runs with the active profile'
 Write-Info ''
-Write-Info 'Tip: To use "claude-profile" in PowerShell without the .ps1 extension,'
-Write-Info 'add an alias to your $PROFILE:'
-Write-Info "  Set-Alias claude-profile '$wrapperCmd' "
-Write-Info "  Or: Set-Alias claude-profile '$(Join-Path $installDir 'claude-profile.ps1')'"
+Write-Info 'For cmd.exe, use: call claude-profile use work'
 Write-Info ''
+Write-Info "Run 'claude-profile help' for all commands."
 Write-Host ''
