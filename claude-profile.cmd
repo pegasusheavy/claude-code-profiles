@@ -22,9 +22,12 @@ if "%~1"=="help"    goto :usage
 if "%~1"=="-h"      goto :usage
 if "%~1"=="--help"  goto :usage
 
-:: Flag passthrough: args starting with - launch default profile
+:: Flags without a subcommand are not supported
 set "_first=%~1"
-if "!_first:~0,1!"=="-" goto :cmd_launch_default
+if "!_first:~0,1!"=="-" (
+    echo claude-profile: unknown command '%~1'. Run 'claude-profile help' for usage. >&2
+    exit /b 1
+)
 
 :: Unknown command
 echo claude-profile: unknown command '%~1'. Run 'claude-profile help' for usage. >&2
@@ -62,8 +65,8 @@ goto :cmd_delete
 echo Usage: claude-profile [command] [args...]
 echo.
 echo Commands:
-echo     (no command)            Launch Claude with the default profile
-echo     use ^<name^> [args...]    Launch Claude with the named profile
+echo     (no command)            Activate the default profile
+echo     use ^<name^>              Activate the named profile
 echo     create ^<name^>           Create a new profile
 echo     list, ls                List all profiles
 echo     default [name]          Get or set the default profile
@@ -71,16 +74,14 @@ echo     delete ^<name^>           Delete a profile
 echo     which [name]            Show the resolved config directory path
 echo     help, -h, --help        Show this help message
 echo.
-echo When invoked with no command (or with flags like -p, --verbose, etc.),
-echo claude-profile launches Claude using the default profile, passing all
-echo arguments through.
+echo Use 'call claude-profile use ^<name^>' to set CLAUDE_CONFIG_DIR in the
+echo current cmd session, then run 'claude' separately.
 echo.
 echo Examples:
 echo     claude-profile create work
 echo     claude-profile default work
-echo     claude-profile                  # launches claude with "work" profile
-echo     claude-profile use work -p      # launches claude -p with "work" profile
-echo     claude-profile --resume         # launches claude --resume with default
+echo     call claude-profile use work     # activates "work" profile
+echo     claude                           # runs with "work" profile
 exit /b 0
 
 :: --- Validate name ---
@@ -224,25 +225,25 @@ exit /b 0
 
 :cmd_use
 if "%~1"=="" (
-    echo claude-profile: usage: claude-profile use ^<name^> [claude args...] >&2
+    echo claude-profile: usage: claude-profile use ^<name^> >&2
     exit /b 1
 )
-set "_cu_name=%~1"
-shift
+if not "%~2"=="" (
+    echo claude-profile: 'use' takes exactly one argument (profile name) >&2
+    exit /b 1
+)
 
 :: Resolve profile dir
-set "_rp_name=!_cu_name!"
+set "_rp_name=%~1"
 set "_rp_dir=%DATA_DIR%\!_rp_name!"
 if not exist "!_rp_dir!\" (
     echo claude-profile: profile '!_rp_name!' does not exist. Create it with: claude-profile create !_rp_name! >&2
     exit /b 1
 )
 
-:: Launch claude with remaining args
-:: endlocal to not leak variables, but preserve the dir path
-endlocal & set "CLAUDE_CONFIG_DIR=%_rp_dir%"
-claude %1 %2 %3 %4 %5 %6 %7 %8 %9
-exit /b %errorlevel%
+:: Set CLAUDE_CONFIG_DIR for the calling session (requires 'call' prefix)
+endlocal & set "CLAUDE_CONFIG_DIR=%_rp_dir%" & echo Switched to profile: %_rp_name%
+exit /b 0
 
 :cmd_delete
 if "%~1"=="" (
@@ -297,8 +298,6 @@ if not exist "!_rp_dir!\" (
     exit /b 1
 )
 
-:: Launch claude with all original args
-:: endlocal to not leak variables, but preserve the dir path
-endlocal & set "CLAUDE_CONFIG_DIR=%_rp_dir%"
-claude %*
-exit /b %errorlevel%
+:: Set CLAUDE_CONFIG_DIR for the calling session (requires 'call' prefix)
+endlocal & set "CLAUDE_CONFIG_DIR=%_rp_dir%" & echo Switched to profile: %_rp_name% (default)
+exit /b 0
