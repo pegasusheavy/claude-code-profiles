@@ -1,0 +1,37 @@
+# claude-profile
+
+> Manage multiple Claude Code configuration profiles. Switch between work, personal, and project-specific setups with transparent profile resolution.
+
+claude-profile is a free, open-source shell tool that wraps the `claude` CLI binary with a transparent function. It automatically sets `CLAUDE_CONFIG_DIR` to your active profile directory before each invocation, so you never need to think about profiles during normal use. Like nvm for Node.js or pyenv for Python, but for Claude Code configuration.
+
+Each profile is a complete, isolated Claude Code configuration directory containing settings.json, .credentials.json, MCP server configs, CLAUDE.md, plugins, and history.
+
+## Documentation
+
+- [Landing page](https://pegasusheavy.github.io/claude-code-profiles/): Features, install instructions, commands, and FAQ
+- [README](https://github.com/pegasusheavy/claude-code-profiles/blob/main/README.md): Full documentation with quick start, commands, how it works, platform support, and manual install
+- [Full LLM context](https://pegasusheavy.github.io/claude-code-profiles/llms-full.txt): Complete project documentation for LLM ingestion
+
+## Install
+
+- Linux / macOS / WSL: `curl -fsSL https://raw.githubusercontent.com/pegasusheavy/claude-code-profiles/main/install.sh | sh`
+- Windows PowerShell: `irm https://raw.githubusercontent.com/pegasusheavy/claude-code-profiles/main/install.ps1 | iex`
+
+## Commands
+
+- `claude-profile`: Show current profile status
+- `claude-profile create <name>`: Create a new profile
+- `claude-profile list`: List all profiles
+- `claude-profile default [name]`: Get or set the default profile
+- `claude-profile use <name>`: Switch to a profile for the current shell session
+- `claude-profile which [name]`: Show the config directory path
+- `claude-profile delete <name>`: Delete a profile (with confirmation)
+- `claude-profile help`: Show help
+
+## Source Code
+
+- [claude-profile.sh](https://github.com/pegasusheavy/claude-code-profiles/blob/main/claude-profile.sh): POSIX shell implementation (bash, zsh)
+- [claude-profile-init.ps1](https://github.com/pegasusheavy/claude-code-profiles/blob/main/claude-profile-init.ps1): PowerShell implementation
+- [claude-profile.cmd](https://github.com/pegasusheavy/claude-code-profiles/blob/main/claude-profile.cmd): Windows cmd.exe batch implementation
+- [install.sh](https://github.com/pegasusheavy/claude-code-profiles/blob/main/install.sh): Unix installer
+- [install.ps1](https://github.com/pegasusheavy/claude-code-profiles/blob/main/install.ps1): Windows installer
