@@ -3,11 +3,165 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>claude-profile — Seamless Profile Management for Claude Code</title>
-  <meta name="description" content="Switch between Claude Code configurations effortlessly. Transparent profile resolution for work, personal, and project-specific setups.">
-  <meta property="og:title" content="claude-profile">
-  <meta property="og:description" content="Seamless profile management for Claude Code">
+  <title>claude-profile — Manage Multiple Claude Code Configuration Profiles</title>
+  <meta name="description" content="claude-profile lets you manage multiple Claude Code configuration profiles. Switch between work, personal, and project-specific setups with transparent profile resolution. Like nvm for Node, but for Claude Code. Supports bash, zsh, PowerShell, and cmd.exe.">
+  <meta name="keywords" content="claude code, claude code profiles, claude-profile, CLAUDE_CONFIG_DIR, claude code configuration, claude code multiple accounts, MCP server profiles, AI coding assistant profiles">
+  <meta name="author" content="Pegasus Heavy Industries">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://pegasusheavy.github.io/claude-code-profiles/">
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="claude-profile — Manage Multiple Claude Code Profiles">
+  <meta property="og:description" content="Switch between Claude Code configurations effortlessly. Transparent profile resolution for work, personal, and project-specific setups. Like nvm for Node, but for Claude Code.">
   <meta property="og:type" content="website">
+  <meta property="og:url" content="https://pegasusheavy.github.io/claude-code-profiles/">
+  <meta property="og:site_name" content="claude-profile">
+  <meta property="og:locale" content="en_US">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="claude-profile — Manage Multiple Claude Code Profiles">
+  <meta name="twitter:description" content="Switch between Claude Code configurations effortlessly. Like nvm for Node, but for Claude Code. Supports bash, zsh, PowerShell, and cmd.exe.">
+
+  <!-- JSON-LD Structured Data -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "SoftwareApplication",
+        "name": "claude-profile",
+        "alternateName": "claude-code-profiles",
+        "description": "Manage multiple Claude Code configuration profiles. Switch between work, personal, and project-specific Claude Code setups with transparent profile resolution via CLAUDE_CONFIG_DIR.",
+        "url": "https://pegasusheavy.github.io/claude-code-profiles/",
+        "applicationCategory": "DeveloperApplication",
+        "operatingSystem": "Linux, macOS, Windows, WSL",
+        "softwareRequirements": "Claude Code CLI",
+        "license": "https://opensource.org/licenses/MIT",
+        "isAccessibleForFree": true,
+        "codeRepository": "https://github.com/pegasusheavy/claude-code-profiles",
+        "programmingLanguage": ["Shell", "PowerShell", "Batch"],
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD"
+        },
+        "featureList": [
+          "Transparent profile resolution — just run claude",
+          "Isolated configuration directories per profile",
+          "Support for bash, zsh, PowerShell 5.1+, pwsh 6+, and cmd.exe",
+          "Zero overhead — no daemon or background process",
+          "Session overrides with claude-profile use",
+          "XDG Base Directory Specification compliant"
+        ]
+      },
+      {
+        "@type": "HowTo",
+        "name": "How to install and use claude-profile",
+        "description": "Install claude-profile to manage multiple Claude Code configuration profiles with transparent switching.",
+        "step": [
+          {
+            "@type": "HowToStep",
+            "position": 1,
+            "name": "Install claude-profile",
+            "text": "Run: curl -fsSL https://raw.githubusercontent.com/pegasusheavy/claude-code-profiles/main/install.sh | sh",
+            "url": "https://pegasusheavy.github.io/claude-code-profiles/#install"
+          },
+          {
+            "@type": "HowToStep",
+            "position": 2,
+            "name": "Create profiles",
+            "text": "Run claude-profile create work and claude-profile create personal to create isolated configuration profiles."
+          },
+          {
+            "@type": "HowToStep",
+            "position": 3,
+            "name": "Set a default profile",
+            "text": "Run claude-profile default work to set your default. The claude command will automatically use this profile."
+          },
+          {
+            "@type": "HowToStep",
+            "position": 4,
+            "name": "Use claude normally",
+            "text": "Just run claude as you always have. Your default profile is transparently resolved — no special commands needed."
+          }
+        ]
+      },
+      {
+        "@type": "FAQPage",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "What is claude-profile?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "claude-profile is a free, open-source tool that lets you manage multiple Claude Code configuration profiles. Each profile is a complete, isolated Claude Code configuration directory containing settings, credentials, MCP servers, history, and CLAUDE.md. It works like nvm for Node.js or pyenv for Python — transparently resolving your active profile when you run the claude command."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "How do I install claude-profile?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "On Linux, macOS, or WSL, run: curl -fsSL https://raw.githubusercontent.com/pegasusheavy/claude-code-profiles/main/install.sh | sh. On Windows PowerShell, run: irm https://raw.githubusercontent.com/pegasusheavy/claude-code-profiles/main/install.ps1 | iex. Then restart your shell."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "What shells does claude-profile support?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "claude-profile supports bash, zsh, PowerShell 5.1+, PowerShell Core (pwsh) 6+, and Windows cmd.exe. On Unix shells it works via sourceable shell functions. On Windows it provides both a PowerShell module and a cmd.exe batch script."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "How does claude-profile work?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "claude-profile provides a transparent claude() shell function wrapper. Before each invocation, the wrapper checks if a default profile is set and automatically sets the CLAUDE_CONFIG_DIR environment variable. If CLAUDE_CONFIG_DIR is already set (e.g., via claude-profile use), it passes through without overriding. The real claude binary is then called with all your arguments. This means you never need to think about profiles during normal use."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Can I switch Claude Code profiles temporarily?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Yes. Run claude-profile use <name> to switch to a different profile for the current shell session only. This overrides the default without changing it. The override lasts until you close the shell or run claude-profile use again."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Where are Claude Code profiles stored?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "On Linux and macOS, profiles are stored at $XDG_DATA_HOME/claude-profiles/ (default: ~/.local/share/claude-profiles/). On Windows, profiles are stored at %LOCALAPPDATA%\\claude-profiles\\. Each profile directory is a complete Claude Code config directory."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "What is CLAUDE_CONFIG_DIR?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "CLAUDE_CONFIG_DIR is an environment variable supported by Claude Code that redirects where it stores configuration and data. claude-profile manages this variable automatically, setting it to point to your active profile directory before each claude invocation."
+            }
+          }
+        ]
+      },
+      {
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          {
+            "@type": "ListItem",
+            "position": 1,
+            "name": "claude-profile",
+            "item": "https://pegasusheavy.github.io/claude-code-profiles/"
+          }
+        ]
+      }
+    ]
+  }
+  </script>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -174,7 +328,7 @@
 <body class="noise bg-dark font-body text-cream antialiased">
 
   <!-- Nav -->
-  <nav class="fixed top-0 inset-x-0 z-50 backdrop-blur-md bg-dark/80 border-b border-dark-200/50">
+  <nav aria-label="Main navigation" class="fixed top-0 inset-x-0 z-50 backdrop-blur-md bg-dark/80 border-b border-dark-200/50">
     <div class="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
       <a href="#" class="font-display text-xl text-cream-50 tracking-tight">
         claude-profile
@@ -184,6 +338,7 @@
         <a href="#how-it-works" class="hidden sm:block text-sm text-cream-300 hover:text-cream-50 transition-colors">How It Works</a>
         <a href="#commands" class="hidden sm:block text-sm text-cream-300 hover:text-cream-50 transition-colors">Commands</a>
         <a href="#install" class="hidden sm:block text-sm text-cream-300 hover:text-cream-50 transition-colors">Install</a>
+        <a href="#faq" class="hidden sm:block text-sm text-cream-300 hover:text-cream-50 transition-colors">FAQ</a>
         <a href="https://github.com/pegasusheavy/claude-code-profiles"
            target="_blank" rel="noopener"
            class="text-cream-300 hover:text-terra transition-colors text-lg"
@@ -441,6 +596,126 @@
               </p>
             </div>
           </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQ -->
+    <section id="faq" class="py-24 md:py-32 px-6">
+      <div class="max-w-3xl mx-auto">
+        <h2 class="reveal font-display text-3xl sm:text-4xl text-cream-50 text-center mb-4">
+          Frequently Asked Questions
+        </h2>
+        <p class="reveal reveal-delay-1 text-cream-300 text-center mb-12">
+          Everything you need to know about managing Claude Code profiles.
+        </p>
+
+        <div class="space-y-4">
+          <details class="reveal reveal-delay-1 group bg-dark-50 border border-dark-200 rounded-2xl overflow-hidden">
+            <summary class="flex items-center justify-between px-6 py-4 cursor-pointer text-cream-50 font-medium hover:text-terra transition-colors">
+              <span>What is claude-profile?</span>
+              <i class="fa-solid fa-chevron-down text-xs text-cream-300 group-open:rotate-180 transition-transform"></i>
+            </summary>
+            <div class="px-6 pb-5">
+              <p class="text-sm text-cream-300 leading-relaxed">
+                claude-profile is a free, open-source tool that lets you manage multiple
+                <strong class="text-cream-200">Claude Code</strong> configuration profiles. Each profile is
+                a complete, isolated config directory containing settings, credentials, MCP&nbsp;servers,
+                history, and CLAUDE.md. It works like
+                <code class="font-mono text-xs text-terra/80">nvm</code> for Node.js or
+                <code class="font-mono text-xs text-terra/80">pyenv</code> for Python&nbsp;&mdash;
+                transparently resolving your active profile when you run the
+                <code class="font-mono text-xs text-terra/80">claude</code> command.
+              </p>
+            </div>
+          </details>
+
+          <details class="reveal reveal-delay-2 group bg-dark-50 border border-dark-200 rounded-2xl overflow-hidden">
+            <summary class="flex items-center justify-between px-6 py-4 cursor-pointer text-cream-50 font-medium hover:text-terra transition-colors">
+              <span>How does claude-profile work?</span>
+              <i class="fa-solid fa-chevron-down text-xs text-cream-300 group-open:rotate-180 transition-transform"></i>
+            </summary>
+            <div class="px-6 pb-5">
+              <p class="text-sm text-cream-300 leading-relaxed">
+                claude-profile provides a transparent
+                <code class="font-mono text-xs text-terra/80">claude()</code> shell function wrapper.
+                Before each invocation, the wrapper checks if a default profile is set and automatically
+                sets the <code class="font-mono text-xs text-terra/80">CLAUDE_CONFIG_DIR</code> environment
+                variable. If <code class="font-mono text-xs text-terra/80">CLAUDE_CONFIG_DIR</code> is
+                already set (e.g., via
+                <code class="font-mono text-xs text-terra/80">claude-profile use</code>), it passes
+                through without overriding. The real
+                <code class="font-mono text-xs text-terra/80">claude</code> binary is then called with all
+                your arguments.
+              </p>
+            </div>
+          </details>
+
+          <details class="reveal reveal-delay-3 group bg-dark-50 border border-dark-200 rounded-2xl overflow-hidden">
+            <summary class="flex items-center justify-between px-6 py-4 cursor-pointer text-cream-50 font-medium hover:text-terra transition-colors">
+              <span>What shells are supported?</span>
+              <i class="fa-solid fa-chevron-down text-xs text-cream-300 group-open:rotate-180 transition-transform"></i>
+            </summary>
+            <div class="px-6 pb-5">
+              <p class="text-sm text-cream-300 leading-relaxed">
+                claude-profile supports <strong class="text-cream-200">bash</strong>,
+                <strong class="text-cream-200">zsh</strong>,
+                <strong class="text-cream-200">PowerShell 5.1+</strong>,
+                <strong class="text-cream-200">PowerShell Core (pwsh) 6+</strong>, and
+                <strong class="text-cream-200">Windows cmd.exe</strong>. On Unix shells it works via
+                sourceable shell functions. On Windows it provides both a PowerShell module and a
+                cmd.exe batch script.
+              </p>
+            </div>
+          </details>
+
+          <details class="reveal reveal-delay-4 group bg-dark-50 border border-dark-200 rounded-2xl overflow-hidden">
+            <summary class="flex items-center justify-between px-6 py-4 cursor-pointer text-cream-50 font-medium hover:text-terra transition-colors">
+              <span>Can I switch profiles temporarily?</span>
+              <i class="fa-solid fa-chevron-down text-xs text-cream-300 group-open:rotate-180 transition-transform"></i>
+            </summary>
+            <div class="px-6 pb-5">
+              <p class="text-sm text-cream-300 leading-relaxed">
+                Yes. Run <code class="font-mono text-xs text-terra/80">claude-profile use &lt;name&gt;</code>
+                to switch to a different profile for the current shell session only. This overrides the
+                default without changing it. The override lasts until you close the shell or run
+                <code class="font-mono text-xs text-terra/80">claude-profile use</code> again.
+              </p>
+            </div>
+          </details>
+
+          <details class="reveal group bg-dark-50 border border-dark-200 rounded-2xl overflow-hidden">
+            <summary class="flex items-center justify-between px-6 py-4 cursor-pointer text-cream-50 font-medium hover:text-terra transition-colors">
+              <span>Where are profiles stored?</span>
+              <i class="fa-solid fa-chevron-down text-xs text-cream-300 group-open:rotate-180 transition-transform"></i>
+            </summary>
+            <div class="px-6 pb-5">
+              <p class="text-sm text-cream-300 leading-relaxed">
+                On Linux and macOS, profiles are stored at
+                <code class="font-mono text-xs text-terra/80">$XDG_DATA_HOME/claude-profiles/</code>
+                (default: <code class="font-mono text-xs text-terra/80">~/.local/share/claude-profiles/</code>).
+                On Windows, profiles are stored at
+                <code class="font-mono text-xs text-terra/80">%LOCALAPPDATA%\claude-profiles\</code>.
+                Each profile directory is a complete Claude Code configuration directory.
+              </p>
+            </div>
+          </details>
+
+          <details class="reveal group bg-dark-50 border border-dark-200 rounded-2xl overflow-hidden">
+            <summary class="flex items-center justify-between px-6 py-4 cursor-pointer text-cream-50 font-medium hover:text-terra transition-colors">
+              <span>What is CLAUDE_CONFIG_DIR?</span>
+              <i class="fa-solid fa-chevron-down text-xs text-cream-300 group-open:rotate-180 transition-transform"></i>
+            </summary>
+            <div class="px-6 pb-5">
+              <p class="text-sm text-cream-300 leading-relaxed">
+                <code class="font-mono text-xs text-terra/80">CLAUDE_CONFIG_DIR</code> is an environment
+                variable supported by Claude Code that redirects where it stores configuration and data.
+                claude-profile manages this variable automatically, setting it to point to your active
+                profile directory before each
+                <code class="font-mono text-xs text-terra/80">claude</code> invocation.
+              </p>
+            </div>
+          </details>
         </div>
       </div>
     </section>
