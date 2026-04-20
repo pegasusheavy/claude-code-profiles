@@ -60,7 +60,6 @@ function claude-profile {
 
     # --- Parse $args manually ---
     $Command = if ($args.Count -gt 0) { $args[0] } else { $null }
-    $Rest = if ($args.Count -gt 1) { $args[1..($args.Count - 1)] } else { @() }
 
     # --- Helpers (nested functions, scoped to claude-profile) ---
 
@@ -102,13 +101,13 @@ function claude-profile {
 
     switch ($Command) {
         'use' {
-            $ArgName = if ($Rest.Count -gt 0) { $Rest[0] } else { $null }
+            $ArgName = if ($args.Count -gt 1) { $args[1] } else { $null }
             if ([string]::IsNullOrEmpty($ArgName)) {
                 _cp_die 'usage: claude-profile use <name>'
                 return
             }
-            if ($Rest.Count -gt 1) {
-                _cp_die "unexpected argument after profile name: '$($Rest[1])'"
+            if ($args.Count -gt 2) {
+                _cp_die "unexpected argument after profile name: '$($args[2])'"
                 return
             }
             if (-not (_cp_validate_name $ArgName)) { return }
@@ -122,7 +121,7 @@ function claude-profile {
         }
 
         'create' {
-            $ArgName = if ($Rest.Count -gt 0) { $Rest[0] } else { $null }
+            $ArgName = if ($args.Count -gt 1) { $args[1] } else { $null }
             if ([string]::IsNullOrEmpty($ArgName)) {
                 _cp_die 'usage: claude-profile create <name>'
                 return
@@ -177,7 +176,7 @@ function claude-profile {
         }
 
         'default' {
-            $ArgName = if ($Rest.Count -gt 0) { $Rest[0] } else { $null }
+            $ArgName = if ($args.Count -gt 1) { $args[1] } else { $null }
             if ([string]::IsNullOrEmpty($ArgName)) {
                 # Get default
                 if (Test-Path $DefaultFile) {
@@ -209,7 +208,7 @@ function claude-profile {
         }
 
         'which' {
-            $ArgName = if ($Rest.Count -gt 0) { $Rest[0] } else { $null }
+            $ArgName = if ($args.Count -gt 1) { $args[1] } else { $null }
             if (-not [string]::IsNullOrEmpty($ArgName)) {
                 # Named profile
                 if (-not (_cp_validate_name $ArgName)) { return }
@@ -240,7 +239,7 @@ function claude-profile {
         }
 
         'delete' {
-            $ArgName = if ($Rest.Count -gt 0) { $Rest[0] } else { $null }
+            $ArgName = if ($args.Count -gt 1) { $args[1] } else { $null }
             if ([string]::IsNullOrEmpty($ArgName)) {
                 _cp_die 'usage: claude-profile delete <name>'
                 return

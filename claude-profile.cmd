@@ -114,12 +114,7 @@ echo !_vn_name! | findstr /C:".." >nul 2>&1 && (
 )
 
 :: Check only valid characters (letters, digits, hyphens, underscores)
-:: Strip all valid characters; if anything remains, the name is invalid
-set "_vn_check=!_vn_name!"
-for %%c in (a b c d e f g h i j k l m n o p q r s t u v w x y z A B C D E F G H I J K L M N O P Q R S T U V W X Y Z 0 1 2 3 4 5 6 7 8 9 - _) do (
-    set "_vn_check=!_vn_check:%%c=!"
-)
-if not "!_vn_check!"=="" (
+echo !_vn_name!| findstr /R "^[a-zA-Z0-9_-][a-zA-Z0-9_-]*$" >nul 2>&1 || (
     echo claude-profile: invalid profile name '%_vn_name%': use only letters, digits, hyphens, underscores >&2
     exit /b 1
 )
