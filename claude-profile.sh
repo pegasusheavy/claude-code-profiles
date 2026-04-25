@@ -88,12 +88,21 @@ claude() {
     # Native claude.exe on Windows expects backslash paths; convert MSYS paths
     # for the subprocess only, leaving the shell-side value untouched so
     # internal commands (list, status) still match against the unix form.
-    if _cp_is_msys && [ -n "${CLAUDE_CONFIG_DIR:-}" ] && command -v cygpath >/dev/null 2>&1; then
-        _cp_native=$(cygpath -w "$CLAUDE_CONFIG_DIR" 2>/dev/null) || _cp_native=""
-        if [ -n "$_cp_native" ]; then
-            CLAUDE_CONFIG_DIR="$_cp_native" command claude "$@"
-            return $?
+    # Fail loudly if cygpath is missing or conversion fails, because silently
+    # passing a /c/Users/... path to claude.exe causes it to create a new
+    # config dir at an unexpected location instead of honoring the profile.
+    if _cp_is_msys && [ -n "${CLAUDE_CONFIG_DIR:-}" ]; then
+        if ! command -v cygpath >/dev/null 2>&1; then
+            _cp_die "cygpath not found on PATH; required on Git Bash / MSYS2 to convert CLAUDE_CONFIG_DIR for claude.exe"
+            return 127
         fi
+        _cp_native=$(cygpath -w "$CLAUDE_CONFIG_DIR" 2>/dev/null) || _cp_native=""
+        if [ -z "$_cp_native" ]; then
+            _cp_die "failed to convert CLAUDE_CONFIG_DIR '$CLAUDE_CONFIG_DIR' to a Windows path via cygpath -w"
+            return 1
+        fi
+        CLAUDE_CONFIG_DIR="$_cp_native" command claude "$@"
+        return $?
     fi
     command claude "$@"
 }
