@@ -6,7 +6,7 @@ Each profile is a complete, isolated Claude Code configuration directory (settin
 
 ## Install
 
-**Linux / macOS / WSL:**
+**Linux / macOS / WSL / Git Bash (MSYS2):**
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/pegasusheavy/claude-code-profiles/main/install.sh | sh
@@ -80,6 +80,7 @@ Profiles are stored in platform-appropriate locations:
 | Linux | `$XDG_DATA_HOME/claude-profiles/` (default: `~/.local/share/claude-profiles/`) |
 | macOS | `$XDG_DATA_HOME/claude-profiles/` (default: `~/.local/share/claude-profiles/`) |
 | Windows | `%LOCALAPPDATA%\claude-profiles\` |
+| Git Bash / MSYS2 | `%LOCALAPPDATA%\claude-profiles\` (shared with cmd/PowerShell) |
 
 Each profile directory is a complete Claude Code config directory. After creating a profile and launching Claude with it, Claude will populate it with `settings.json`, `.credentials.json`, and everything else it needs.
 
@@ -91,9 +92,19 @@ Profile names can contain letters, digits, hyphens, and underscores. Examples: `
 
 | Script | Platform | Shell |
 |--------|----------|-------|
-| `claude-profile.sh` | Linux, macOS, WSL | bash, zsh (sourced) |
+| `claude-profile.sh` | Linux, macOS, WSL, Git Bash / MSYS2 | bash, zsh (sourced) |
 | `claude-profile-init.ps1` | Windows, Linux, macOS | PowerShell 5.1+ / pwsh 6+ (dot-sourced) |
 | `claude-profile.cmd` | Windows | cmd.exe (use with `call` prefix) |
+
+### Git Bash / MSYS2 Support
+
+On Git Bash and other MSYS2-based shells on Windows, `claude-profile.sh` automatically detects the environment and:
+
+- Stores profiles at `%LOCALAPPDATA%\claude-profiles\` (shared with cmd.exe and PowerShell implementations)
+- Converts Unix-style paths to Windows-native paths via `cygpath -w` before passing them to the native `claude.exe` binary
+- Uses the `MSYSTEM` environment variable for detection (`MINGW64`, `MINGW32`, `MSYS`, etc.)
+
+This means Git Bash users share the same profile data with cmd.exe and PowerShell on the same machine — no duplication or conflicts.
 
 ## Manual Install
 

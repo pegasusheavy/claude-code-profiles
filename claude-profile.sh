@@ -6,11 +6,36 @@
 # Provides:
 #   claude           — runs Claude Code with the active/default profile
 #   claude-profile   — manage profiles (create, list, delete, default, use, which)
+#
+# Supports POSIX shells on Linux, macOS, WSL, and Git Bash / MSYS2 on Windows.
+# On Git Bash the data directory is anchored at %LOCALAPPDATA% so profiles are
+# shared with the cmd.exe and PowerShell implementations on the same machine.
 
 # --- Internal helpers ---
 
 _cp_die() {
     printf 'claude-profile: %s\n' "$1" >&2
+}
+
+# Detects MSYS-family environments (Git Bash, MSYS2, Cygwin shipped with
+# MSYSTEM set). Used to decide whether to convert paths via cygpath.
+_cp_is_msys() {
+    case "${MSYSTEM:-}" in
+        MINGW*|MSYS*|UCRT*|CLANG*) return 0 ;;
+    esac
+    return 1
+}
+
+# Resolves the profile data directory. On MSYS-family shells, anchors at
+# %LOCALAPPDATA%/claude-profiles (matching the cmd.exe and PowerShell
+# implementations) so profiles are shared across shells on the same machine.
+# Falls back to $XDG_DATA_HOME/claude-profiles on every other platform.
+_cp_data_dir() {
+    if _cp_is_msys && [ -n "${LOCALAPPDATA:-}" ] && command -v cygpath >/dev/null 2>&1; then
+        cygpath -u "${LOCALAPPDATA}/claude-profiles"
+        return 0
+    fi
+    printf '%s\n' "${XDG_DATA_HOME:-${HOME}/.local/share}/claude-profiles"
 }
 
 _cp_validate_name() {
@@ -51,13 +76,23 @@ _cp_validate_name() {
 
 claude() {
     if [ -z "${CLAUDE_CONFIG_DIR:-}" ]; then
-        _cp_data="${XDG_DATA_HOME:-${HOME}/.local/share}/claude-profiles"
+        _cp_data=$(_cp_data_dir)
         _cp_def="${_cp_data}/.default"
         if [ -f "$_cp_def" ]; then
             _cp_name=$(cat "$_cp_def")
             if [ -n "$_cp_name" ] && [ -d "${_cp_data}/${_cp_name}" ]; then
                 export CLAUDE_CONFIG_DIR="${_cp_data}/${_cp_name}"
             fi
+        fi
+    fi
+    # Native claude.exe on Windows expects backslash paths; convert MSYS paths
+    # for the subprocess only, leaving the shell-side value untouched so
+    # internal commands (list, status) still match against the unix form.
+    if _cp_is_msys && [ -n "${CLAUDE_CONFIG_DIR:-}" ] && command -v cygpath >/dev/null 2>&1; then
+        _cp_native=$(cygpath -w "$CLAUDE_CONFIG_DIR" 2>/dev/null) || _cp_native=""
+        if [ -n "$_cp_native" ]; then
+            CLAUDE_CONFIG_DIR="$_cp_native" command claude "$@"
+            return $?
         fi
     fi
     command claude "$@"
@@ -67,7 +102,7 @@ claude() {
 
 # shellcheck disable=SC3033  # hyphenated function name works in bash/zsh
 claude-profile() {
-    _cp_data="${XDG_DATA_HOME:-${HOME}/.local/share}/claude-profiles"
+    _cp_data=$(_cp_data_dir)
     _cp_default_file="${_cp_data}/.default"
 
     case "${1:-}" in

@@ -66,9 +66,17 @@ detect_platform() {
         Darwin)
             PLATFORM="macos"
             ;;
+        MINGW*|MSYS*|CYGWIN*)
+            PLATFORM="gitbash"
+            ;;
         *)
-            PLATFORM="unknown"
-            warn "Unrecognized platform: $_os (proceeding anyway)"
+            # Some MSYS2 builds report a non-standard uname; fall back to MSYSTEM.
+            if [ -n "${MSYSTEM:-}" ]; then
+                PLATFORM="gitbash"
+            else
+                PLATFORM="unknown"
+                warn "Unrecognized platform: $_os (proceeding anyway)"
+            fi
             ;;
     esac
 }
