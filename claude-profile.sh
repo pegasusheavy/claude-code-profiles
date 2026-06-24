@@ -139,11 +139,29 @@ claude-profile() {
 
         create)
             shift
-            if [ -z "${1:-}" ]; then
-                _cp_die "usage: claude-profile create <name>"
+            _cp_do_init=0
+            _cp_name=""
+            while [ $# -gt 0 ]; do
+                case "$1" in
+                    --init) _cp_do_init=1 ;;
+                    -*)
+                        _cp_die "unknown option '$1'"
+                        return 1
+                        ;;
+                    *)
+                        if [ -n "$_cp_name" ]; then
+                            _cp_die "unexpected argument '$1'"
+                            return 1
+                        fi
+                        _cp_name="$1"
+                        ;;
+                esac
+                shift
+            done
+            if [ -z "$_cp_name" ]; then
+                _cp_die "usage: claude-profile create [--init] <name>"
                 return 1
             fi
-            _cp_name="$1"
             _cp_validate_name "$_cp_name" || return 1
             _cp_dir="${_cp_data}/${_cp_name}"
             if [ -d "$_cp_dir" ]; then
@@ -153,6 +171,41 @@ claude-profile() {
             mkdir -p "$_cp_dir"
             printf 'Created profile: %s\n' "$_cp_name"
             printf 'Config directory: %s\n' "$_cp_dir"
+            if [ "$_cp_do_init" -eq 1 ]; then
+                _cp_settings="${_cp_dir}/settings.json"
+                cat > "$_cp_settings" <<'SETTINGSEOF'
+{
+  "env": {
+    "ANTHROPIC_API_KEY": "YOUR_API_KEY_HERE",
+    "ANTHROPIC_BASE_URL": "https://YOUR_ENDPOINT_HERE",
+    "CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS": "0"
+  },
+  "model": "claude-sonnet-4-6",
+  "advisorModel": "claude-opus-4-8",
+  "fallbackModel": ["claude-haiku-4-5"],
+  "effortLevel": "high",
+  "alwaysThinkingEnabled": false,
+  "permissions": {
+    "allow": [],
+    "deny": []
+  },
+  "autoMemoryEnabled": true,
+  "autoCompactEnabled": true,
+  "fileCheckpointingEnabled": true,
+  "cleanupPeriodDays": 30,
+  "language": "english",
+  "editorMode": "normal",
+  "preferredNotifChannel": "auto"
+}
+SETTINGSEOF
+                printf 'Config skeleton written to: %s\n' "$_cp_settings"
+                printf 'Tip: remove "ANTHROPIC_BASE_URL" if using the default Anthropic endpoint.\n'
+                if [ -n "${VISUAL:-}" ]; then
+                    "${VISUAL}" "$_cp_settings"
+                elif [ -n "${EDITOR:-}" ]; then
+                    "${EDITOR}" "$_cp_settings"
+                fi
+            fi
             ;;
 
         list|ls)
@@ -306,7 +359,7 @@ Usage: claude-profile [command] [args...]
 Commands:
     (no command)            Show current profile status
     use <name>              Switch session to the named profile
-    create <name>           Create a new profile
+    create [--init] <name>  Create a new profile (--init writes a settings.json skeleton)
     list, ls                List all profiles
     default [name]          Get or set the default profile
     which [name]            Show the resolved config directory path
@@ -318,6 +371,7 @@ The claude command automatically uses the default profile. Use
 
 Examples:
     claude-profile create work
+    claude-profile create --init work
     claude-profile default work
     claude-profile use work
     claude                          # runs with "work" profile
