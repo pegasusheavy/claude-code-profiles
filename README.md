@@ -47,7 +47,14 @@ claude -p "explain this code"
 | `claude-profile default [name]` | Get or set the default profile |
 | `claude-profile delete <name>` | Delete a profile (with confirmation) |
 | `claude-profile which [name]` | Show the config directory path |
+| `claude-profile rename <old> <new>` | Rename a profile (follows default/active pointers) |
+| `claude-profile clone <src> <dst>` | Duplicate a profile, including its config |
+| `claude-profile exec <name> [--] [args]` | Run `claude` with a profile once, without switching |
+| `claude-profile show [name]` | Print a profile's `settings.json` (default profile if omitted) |
+| `claude-profile edit [name]` | Open a profile's `settings.json` in `$VISUAL`/`$EDITOR` |
 | `claude-profile help` | Show help |
+
+Tab-completion of subcommands and profile names is available in bash, zsh, and fish.
 
 ## How It Works
 
@@ -93,8 +100,13 @@ Profile names can contain letters, digits, hyphens, and underscores. Examples: `
 | Script | Platform | Shell |
 |--------|----------|-------|
 | `claude-profile.sh` | Linux, macOS, WSL, Git Bash / MSYS2 | bash, zsh (sourced) |
+| `claude-profile.fish` | Linux, macOS, WSL | fish (sourced) |
 | `claude-profile-init.ps1` | Windows, Linux, macOS | PowerShell 5.1+ / pwsh 6+ (dot-sourced) |
 | `claude-profile.cmd` | Windows | cmd.exe (use with `call` prefix) |
+
+### fish Support
+
+fish is not POSIX-compatible, so it cannot source `claude-profile.sh`. `claude-profile.fish` is a native fish port with the same commands and the same on-disk profile layout, so profiles created from bash/zsh are visible in fish and vice versa. The installer detects fish and sources the fish version from `config.fish` automatically. (Git Bash / MSYS2 path handling is bash/zsh-only; fish is not available on those platforms.)
 
 ### Git Bash / MSYS2 Support
 
@@ -120,6 +132,18 @@ curl -fsSL https://raw.githubusercontent.com/pegasusheavy/claude-code-profiles/m
 
 # Add to shell profile (.bashrc or .zshrc)
 echo '. "${XDG_DATA_HOME:-$HOME/.local/share}/claude-profile/claude-profile.sh"' >> ~/.bashrc
+```
+
+**fish:**
+
+```fish
+# Download
+mkdir -p "$HOME/.local/share/claude-profile"
+curl -fsSL https://raw.githubusercontent.com/pegasusheavy/claude-code-profiles/main/claude-profile.fish \
+  -o "$HOME/.local/share/claude-profile/claude-profile.fish"
+
+# Add to fish config
+echo 'source "$HOME/.local/share/claude-profile/claude-profile.fish"' >> ~/.config/fish/config.fish
 ```
 
 **Windows (PowerShell):**

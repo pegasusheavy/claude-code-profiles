@@ -112,23 +112,51 @@ main() {
     chmod +r "${INSTALL_DIR}/claude-profile.sh"
     info "Installed: ${INSTALL_DIR}/claude-profile.sh"
 
+    # Also install the fish port. fish cannot source the POSIX script, so it
+    # ships as a separate native file sharing the same on-disk profile layout.
+    # Git Bash / MSYS2 do not provide fish, so skip it there.
+    if [ "$PLATFORM" != "gitbash" ]; then
+        step "Downloading claude-profile.fish..."
+        _tmp_fish="$(mktemp)"
+        trap 'rm -f "$_tmp_file" "$_tmp_fish"' EXIT
+        if download_file "${REPO_BASE}/claude-profile.fish" "$_tmp_fish"; then
+            cp "$_tmp_fish" "${INSTALL_DIR}/claude-profile.fish"
+            chmod +r "${INSTALL_DIR}/claude-profile.fish"
+            info "Installed: ${INSTALL_DIR}/claude-profile.fish"
+        else
+            warn "Could not download claude-profile.fish (skipping fish support)."
+        fi
+    fi
+
     # Detect shell profile and auto-append source line
     step "Configuring shell..."
     _shell_name=$(basename "${SHELL:-/bin/sh}")
+
+    # Single quotes are intentional: the expression must expand in the user's
+    # shell at login, not during installation. fish does not understand POSIX
+    # ${VAR:-default} expansion, so it gets a fish-syntax line instead.
+    # shellcheck disable=SC2016
+    _source_line='. "${XDG_DATA_HOME:-$HOME/.local/share}/claude-profile/claude-profile.sh"'
+    _source_marker='claude-profile.sh'
+
     case "$_shell_name" in
         zsh)  _profile_file="${ZDOTDIR:-$HOME}/.zshrc" ;;
         bash) _profile_file="${HOME}/.bashrc" ;;
+        fish)
+            _profile_file="${XDG_CONFIG_HOME:-$HOME/.config}/fish/config.fish"
+            # fish lacks POSIX ${VAR:-default} expansion, so embed the already
+            # resolved absolute install path rather than a portable expression.
+            _source_line="source \"${INSTALL_DIR}/claude-profile.fish\""
+            _source_marker='claude-profile.fish'
+            ;;
         *)    _profile_file="" ;;
     esac
 
-    # Single quotes are intentional: the expression must expand in the
-    # user's shell at login, not during installation.
-    # shellcheck disable=SC2016
-    _source_line='. "${XDG_DATA_HOME:-$HOME/.local/share}/claude-profile/claude-profile.sh"'
-
     if [ -n "$_profile_file" ]; then
+        # Create the config directory if needed (notably ~/.config/fish).
+        mkdir -p "$(dirname "$_profile_file")"
         # Idempotent: check if already present
-        if [ -f "$_profile_file" ] && grep -qF 'claude-profile.sh' "$_profile_file" 2>/dev/null; then
+        if [ -f "$_profile_file" ] && grep -qF "$_source_marker" "$_profile_file" 2>/dev/null; then
             info "Source line already in $_profile_file"
         else
             printf '\n# claude-profile: manage Claude Code configuration profiles\n%s\n' "$_source_line" >> "$_profile_file"
