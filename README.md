@@ -4,9 +4,13 @@ Manage multiple [Claude Code](https://code.claude.com) configuration profiles. S
 
 Each profile is a complete, isolated Claude Code configuration directory (settings, credentials, MCP servers, CLAUDE.md, history -- everything). Once configured, `claude` automatically uses your active profile -- no special launch command needed.
 
+The repository also provides `agent-profile` for Antigravity (`agy` and the
+Antigravity GUI) and OpenAI Codex. Claude remains backward compatible through
+`claude-profile`.
+
 ## Install
 
-**Linux / macOS / WSL / Git Bash (MSYS2):**
+**Linux / macOS / WSL / Git Bash (MSYS2) / Fish:**
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/pegasusheavy/claude-code-profiles/main/install.sh | sh
@@ -18,7 +22,10 @@ curl -fsSL https://raw.githubusercontent.com/pegasusheavy/claude-code-profiles/m
 irm https://raw.githubusercontent.com/pegasusheavy/claude-code-profiles/main/install.ps1 | iex
 ```
 
-The installer downloads the appropriate scripts and configures your shell. **Restart your shell** (or open a new terminal) after installing.
+The installer downloads the appropriate scripts and configures your shell. When
+`$SHELL` is Fish, it installs native `.fish` adapters and sources them from
+`~/.config/fish/config.fish`. **Restart your shell** (or open a new terminal)
+after installing.
 
 ## Quick Start
 
@@ -34,6 +41,12 @@ claude-profile default work
 claude
 claude --resume
 claude -p "explain this code"
+
+# Snapshot your current Antigravity login into a named profile
+agent-profile copy antigravity hafez
+agent-profile default antigravity hafez
+agy
+antigravity
 ```
 
 ## Commands
@@ -61,6 +74,33 @@ claude -p "explain this code"
 | `claude-profile update [--force]` | Update to the latest release |
 | `claude-profile help` | Show help |
 
+### Antigravity and Codex commands
+
+`agent-profile` accepts either `agent-profile <provider> <command>` or
+`agent-profile <command> <provider>`. The provider name `antigravity` covers
+both the `agy` CLI and the Antigravity GUI, so they use the same named
+profiles:
+
+| Command | Description |
+|---------|-------------|
+| `agent-profile copy antigravity <name>` | Snapshot current Antigravity CLI and GUI data |
+| `agent-profile copy antigravity default <name>` | Copy the managed Antigravity default |
+| `agent-profile create antigravity <name>` | Create an empty Antigravity profile |
+| `agent-profile default antigravity [name]` | Get or set the Antigravity default |
+| `agent-profile use antigravity <name>` | Select an Antigravity profile for this shell |
+| `agent-profile list antigravity` | List Antigravity profiles |
+| `agent-profile which antigravity [name]` | Print a profile path |
+| `agent-profile restart antigravity` | Open a fresh GUI window with the selected profile |
+| `agent-profile copy codex <name>` | Snapshot the current Codex `CODEX_HOME` |
+| `agent-profile default codex [name]` | Get or set the Codex default |
+| `agent-profile use codex <name>` | Select a Codex profile for this shell |
+
+After sourcing `agent-profile.sh` or `agent-profile.fish` (or dot-sourcing
+`agent-profile-init.ps1`), the `agy`,
+`antigravity`, `antigravity-ide`, and `codex` commands automatically launch
+with the active profile. Target-specific aliases are also available:
+`agy-profile`, `antigravity-profile`, and `codex-profile`.
+
 ## How It Works
 
 Claude Code supports a `CLAUDE_CONFIG_DIR` environment variable that redirects where it stores configuration and data. `claude-profile` provides a `claude()` shell function that wraps the real `claude` binary:
@@ -71,6 +111,87 @@ Claude Code supports a `CLAUDE_CONFIG_DIR` environment variable that redirects w
 4. The real `claude` binary is then called with all your arguments.
 
 This means you never need to think about profiles during normal use -- just run `claude` as you always have.
+
+### Antigravity and Codex profile isolation
+
+Antigravity keeps its real state -- account, login credentials,
+conversations, and agent data -- below `~/.gemini`, for the GUI just as much
+as for the CLI. Both wrappers therefore launch with a profile-specific `HOME`
+rooted at `<profile>/home`, and that is what actually switches profiles. On
+Windows the deciding variable is `USERPROFILE` (which is what the app reads
+there), so the wrappers set it alongside `HOME`.
+
+The GUI additionally receives `--user-data-dir=<profile>/gui-user-data`. That
+moves Chromium's own user data and, more importantly, its singleton lock,
+which is what lets two profiles run side by side; on its own it never switched
+the profile. If you pass your own `--user-data-dir`, nothing is injected and
+yours is honoured -- the profile's `HOME` still applies.
+
+The GUI wrapper first looks for the `antigravity-ide` or `antigravity`
+command, then auto-detects the native `/Applications/Antigravity.app` bundle
+on macOS (including an installation in `~/Applications`). The bundle is
+started with `open -n --env HOME=... -a <bundle> --args --user-data-dir=...`,
+so it receives the profile's `HOME`, runs as a separate instance, and is
+detached from your shell with normal Dock and activation behaviour. If the GUI
+executable is installed elsewhere, set
+`AGENT_PROFILE_ANTIGRAVITY_GUI_COMMAND` to its executable path.
+
+A redirected `HOME` on macOS would also cost the app its keychain: macOS
+resolves the login keychain at `$HOME/Library/Keychains`, so a child with a
+profile-specific `HOME` has none at all, and Antigravity stops on a modal
+reading "A keychain cannot be found to store antigravity". Both launchers
+therefore link `<profile>/home/Library/Keychains` to your real keychain
+directory before starting the CLI or the GUI, and never replace an entry that
+is already there. The link points at the keychain directory, so every profile
+reaches the same keychains you already use; what Antigravity actually keeps
+there is Chromium's "Antigravity Safe Storage" key, which encrypts the local
+cookie store at rest. The account itself lives in `~/.gemini` and stays
+per-profile, so nothing about account separation is weakened. Windows and Linux need no link and get
+none -- DPAPI is bound to the Windows user account, and Chromium on Linux uses
+the D-Bus Secret Service.
+
+To copy the currently logged-in Antigravity data into `hafez`:
+
+```sh
+agent-profile copy antigravity hafez
+agent-profile default antigravity hafez
+agy                         # Antigravity CLI using hafez
+antigravity                 # Antigravity GUI using hafez
+```
+
+If the GUI is already running after switching profiles, open a fresh
+profile-isolated window with:
+
+```sh
+agent-profile restart antigravity
+```
+
+This leaves other Antigravity windows running, avoiding forced process
+termination or loss of unsaved work: the profile's own `HOME` plus its own
+user-data-dir are what let the new window open alongside the running one, and
+`open -n` keeps it from attaching to the existing instance. `--new-window` is
+injected only in PATH-command mode -- any launcher resolved from `PATH` or
+from `AGENT_PROFILE_ANTIGRAVITY_GUI_COMMAND`, a VS Code derived
+`antigravity-ide` being the case it exists for -- and never for the macOS app
+bundle, which is a plain Electron app and ignores that VS Code flag. You can
+pass additional GUI arguments after the provider name.
+
+`agent-profile copy antigravity default hafez` copies an existing managed
+default instead of live data. Copy refuses to overwrite an existing profile
+unless `--force` is supplied. Filesystem-backed data is copied; OS keyring
+credentials are intentionally not read or modified. On macOS the only keychain
+item in play is the shared "Antigravity Safe Storage" key described above,
+which carries no account identity; on other platforms a keyring-backed login
+may still be shared between profiles. Snapshots also drop Chromium's
+`SingletonLock`, `SingletonCookie`, and `SingletonSocket` from
+`<profile>/gui-user-data` -- a copied lock still names the instance it came
+from, which could otherwise make the new profile silently focus the original
+window instead of opening its own. A profile snapshotted before that pruning
+existed can still hold those three files; deleting them from
+`<profile>/gui-user-data` fixes it.
+
+Codex profiles are launched with `CODEX_HOME=<profile-path>` and include the
+current `$CODEX_HOME` (or `~/.codex`) when copied.
 
 ### Session Override
 
@@ -128,7 +249,7 @@ Precedence and control:
   current directory.
 
 Hooking into directory changes is per-shell: zsh uses `chpwd`, bash uses
-`PROMPT_COMMAND`, and other POSIX shells get a `cd` wrapper. PowerShell 6+
+`PROMPT_COMMAND`, Fish uses its `PWD` variable event, and other POSIX shells get a `cd` wrapper. PowerShell 6+
 uses `LocationChangedAction`; Windows PowerShell 5.1 hooks the `prompt`
 function.
 
@@ -203,6 +324,12 @@ Profiles are stored in platform-appropriate locations:
 
 Each profile directory is a complete Claude Code config directory. After creating a profile and launching Claude with it, Claude will populate it with `settings.json`, `.credentials.json`, and everything else it needs.
 
+Agent profiles are stored separately at
+`${AGENT_PROFILE_DATA_DIR:-$XDG_DATA_HOME/agent-profiles}` on POSIX (defaulting
+to `~/.local/share/agent-profiles`) or `%LOCALAPPDATA%\agent-profiles` on
+Windows. Antigravity profiles contain `home/.gemini` and
+`gui-user-data`; Codex profiles contain the contents of `CODEX_HOME`.
+
 ### Profile Names
 
 Profile names can contain letters, digits, hyphens, and underscores. Examples: `work`, `personal`, `client-acme`, `side_project`.
@@ -252,8 +379,13 @@ fixed.
 | Script | Platform | Shell |
 |--------|----------|-------|
 | `claude-profile.sh` | Linux, macOS, WSL, Git Bash / MSYS2 | bash, zsh (sourced) |
+| `claude-profile.fish` | Linux, macOS, WSL | fish (sourced) |
 | `claude-profile-init.ps1` | Windows, Linux, macOS | PowerShell 5.1+ / pwsh 6+ (dot-sourced) |
 | `claude-profile.cmd` | Windows | cmd.exe (use with `call` prefix) |
+| `agent-profile.sh` | Linux, macOS, WSL, Git Bash / MSYS2 | bash, zsh (sourced) |
+| `agent-profile.fish` | Linux, macOS, WSL | fish (sourced) |
+| `agent-profile-init.ps1` | Windows, Linux, macOS | PowerShell 5.1+ / pwsh (dot-sourced) |
+| `agent-profile.cmd` + target shims | Windows | cmd.exe (use with `call` for manager commands) |
 
 ### Git Bash / MSYS2 Support
 
@@ -276,10 +408,36 @@ If you prefer not to use the install scripts:
 mkdir -p "${XDG_DATA_HOME:-$HOME/.local/share}/claude-profile"
 curl -fsSL https://raw.githubusercontent.com/pegasusheavy/claude-code-profiles/main/claude-profile.sh \
   -o "${XDG_DATA_HOME:-$HOME/.local/share}/claude-profile/claude-profile.sh"
+curl -fsSL https://raw.githubusercontent.com/pegasusheavy/claude-code-profiles/main/agent-profile.sh \
+  -o "${XDG_DATA_HOME:-$HOME/.local/share}/claude-profile/agent-profile.sh"
 
 # Add to shell profile (.bashrc or .zshrc)
 echo '. "${XDG_DATA_HOME:-$HOME/.local/share}/claude-profile/claude-profile.sh"' >> ~/.bashrc
+echo '. "${XDG_DATA_HOME:-$HOME/.local/share}/claude-profile/agent-profile.sh"' >> ~/.bashrc
 ```
+
+**Fish:**
+
+```fish
+set -l data_dir $XDG_DATA_HOME
+if test -z "$data_dir"
+    set data_dir "$HOME/.local/share"
+end
+set -l config_dir $XDG_CONFIG_HOME
+if test -z "$config_dir"
+    set config_dir "$HOME/.config"
+end
+set -l install_dir "$data_dir/claude-profile"
+set -l fish_config "$config_dir/fish/config.fish"
+mkdir -p "$install_dir" (path dirname "$fish_config")
+curl -fsSL https://raw.githubusercontent.com/pegasusheavy/claude-code-profiles/main/claude-profile.fish -o "$install_dir/claude-profile.fish"
+curl -fsSL https://raw.githubusercontent.com/pegasusheavy/claude-code-profiles/main/agent-profile.fish -o "$install_dir/agent-profile.fish"
+printf "\nsource '%s/claude-profile.fish'\n" "$install_dir" >> "$fish_config"
+printf "source '%s/agent-profile.fish'\n" "$install_dir" >> "$fish_config"
+```
+
+The Fish adapters are native Fish syntax; do not source the `.sh` adapters from
+Fish. They share the same profile directories and command behavior.
 
 **Windows (PowerShell):**
 
@@ -288,8 +446,15 @@ $dir = "$env:LOCALAPPDATA\claude-profile"
 New-Item -ItemType Directory -Force -Path $dir | Out-Null
 Invoke-WebRequest -Uri "https://raw.githubusercontent.com/pegasusheavy/claude-code-profiles/main/claude-profile-init.ps1" -OutFile "$dir\claude-profile-init.ps1"
 Invoke-WebRequest -Uri "https://raw.githubusercontent.com/pegasusheavy/claude-code-profiles/main/claude-profile.cmd" -OutFile "$dir\claude-profile.cmd"
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/pegasusheavy/claude-code-profiles/main/agent-profile-init.ps1" -OutFile "$dir\agent-profile-init.ps1"
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/pegasusheavy/claude-code-profiles/main/agent-profile.cmd" -OutFile "$dir\agent-profile.cmd"
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/pegasusheavy/claude-code-profiles/main/agy.cmd" -OutFile "$dir\agy.cmd"
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/pegasusheavy/claude-code-profiles/main/antigravity.cmd" -OutFile "$dir\antigravity.cmd"
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/pegasusheavy/claude-code-profiles/main/antigravity-ide.cmd" -OutFile "$dir\antigravity-ide.cmd"
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/pegasusheavy/claude-code-profiles/main/codex.cmd" -OutFile "$dir\codex.cmd"
 # Add to PowerShell profile
 Add-Content -Path $PROFILE -Value ". '$dir\claude-profile-init.ps1'"
+Add-Content -Path $PROFILE -Value ". '$dir\agent-profile-init.ps1'"
 # Add to PATH for cmd.exe
 $path = [Environment]::GetEnvironmentVariable('Path', 'User')
 if ($path -notlike "*$dir*") { [Environment]::SetEnvironmentVariable('Path', "$path;$dir", 'User') }

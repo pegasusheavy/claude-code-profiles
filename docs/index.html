@@ -13,7 +13,7 @@
     gtag('config', 'G-E6DWG27SVR');
   </script>
   <title>claude-profile — Manage Multiple Claude Code Configuration Profiles</title>
-  <meta name="description" content="claude-profile lets you manage multiple Claude Code configuration profiles. Switch between work, personal, and project-specific setups with transparent profile resolution. Like nvm for Node, but for Claude Code. Supports bash, zsh, PowerShell, and cmd.exe.">
+  <meta name="description" content="claude-profile lets you manage multiple Claude Code configuration profiles. Switch between work, personal, and project-specific setups with transparent profile resolution. Like nvm for Node, but for Claude Code. Supports bash, zsh, Fish, PowerShell, and cmd.exe.">
   <meta name="keywords" content="claude code, claude code profiles, claude-profile, CLAUDE_CONFIG_DIR, claude code configuration, claude code multiple accounts, MCP server profiles, AI coding assistant profiles">
   <meta name="author" content="Pegasus Heavy Industries">
   <meta name="robots" content="index, follow">
@@ -30,7 +30,7 @@
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary">
   <meta name="twitter:title" content="claude-profile — Manage Multiple Claude Code Profiles">
-  <meta name="twitter:description" content="Switch between Claude Code configurations effortlessly. Like nvm for Node, but for Claude Code. Supports bash, zsh, PowerShell, and cmd.exe.">
+  <meta name="twitter:description" content="Switch between Claude Code configurations effortlessly. Like nvm for Node, but for Claude Code. Supports bash, zsh, Fish, PowerShell, and cmd.exe.">
 
   <!-- JSON-LD Structured Data -->
   <script type="application/ld+json">
@@ -58,7 +58,7 @@
         "featureList": [
           "Transparent profile resolution — just run claude",
           "Isolated configuration directories per profile",
-          "Support for bash, zsh, PowerShell 5.1+, pwsh 6+, and cmd.exe",
+          "Support for bash, zsh, Fish, PowerShell 5.1+, pwsh 6+, and cmd.exe",
           "Zero overhead — no daemon or background process",
           "Session overrides with claude-profile use",
           "XDG Base Directory Specification compliant"
@@ -112,7 +112,7 @@
             "name": "How do I install claude-profile?",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "On Linux, macOS, or WSL, run: curl -fsSL https://raw.githubusercontent.com/pegasusheavy/claude-code-profiles/main/install.sh | sh. On Windows PowerShell, run: irm https://raw.githubusercontent.com/pegasusheavy/claude-code-profiles/main/install.ps1 | iex. Then restart your shell."
+              "text": "On Linux, macOS, WSL, or Fish, run: curl -fsSL https://raw.githubusercontent.com/pegasusheavy/claude-code-profiles/main/install.sh | sh. On Windows PowerShell, run: irm https://raw.githubusercontent.com/pegasusheavy/claude-code-profiles/main/install.ps1 | iex. Then restart your shell."
             }
           },
           {
@@ -120,7 +120,7 @@
             "name": "What shells does claude-profile support?",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "claude-profile supports bash, zsh, PowerShell 5.1+, PowerShell Core (pwsh) 6+, and Windows cmd.exe. On Unix shells it works via sourceable shell functions. On Windows it provides both a PowerShell module and a cmd.exe batch script."
+              "text": "claude-profile supports bash, zsh, Fish, PowerShell 5.1+, PowerShell Core (pwsh) 6+, and Windows cmd.exe. On Unix shells it works via sourceable shell functions. On Windows it provides both a PowerShell module and a cmd.exe batch script."
             }
           },
           {
@@ -427,7 +427,7 @@
             </div>
             <h3 class="font-semibold text-cream-50 mb-2">Shell Native</h3>
             <p class="text-sm text-cream-300 leading-relaxed">
-              Lightweight shell functions for bash, zsh, and PowerShell. Plus cmd.exe batch support.
+          Lightweight shell functions for bash, zsh, Fish, and PowerShell. Plus cmd.exe batch support.
             </p>
           </div>
 
@@ -592,7 +592,7 @@
                 </button>
               </div>
               <p class="text-xs text-cream-300/60 mt-3">
-                Works with <code class="text-cream-300/70">bash</code> and <code class="text-cream-300/70">zsh</code>.
+                Works with <code class="text-cream-300/70">bash</code>, <code class="text-cream-300/70">zsh</code>, and <code class="text-cream-300/70">Fish</code>.
                 The installer downloads a script and adds a source line to your shell profile.
               </p>
             </div>
@@ -677,6 +677,7 @@
               <p class="text-sm text-cream-300 leading-relaxed">
                 claude-profile supports <strong class="text-cream-200">bash</strong>,
                 <strong class="text-cream-200">zsh</strong>,
+                <strong class="text-cream-200">Fish</strong>,
                 <strong class="text-cream-200">PowerShell 5.1+</strong>,
                 <strong class="text-cream-200">PowerShell Core (pwsh) 6+</strong>, and
                 <strong class="text-cream-200">Windows cmd.exe</strong>. On Unix shells it works via

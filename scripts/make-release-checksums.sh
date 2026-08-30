@@ -1,9 +1,8 @@
 #!/bin/sh
 set -e
-# Generates SHA256SUMS for the current repo's VERSION file and the three
-# claude-profile scripts. Run from the repo root when cutting a release,
-# then upload the output alongside VERSION/claude-profile.sh/
-# claude-profile-init.ps1/claude-profile.cmd as GitHub Release assets.
+# Generates SHA256SUMS for the current repo's VERSION and launcher assets.
+# Run from the repo root when cutting a release, then upload the output
+# alongside the listed files as GitHub Release assets.
 #
 # Usage: ./scripts/make-release-checksums.sh > SHA256SUMS
 
@@ -16,7 +15,12 @@ else
     exit 1
 fi
 
-for f in VERSION claude-profile.sh claude-profile-init.ps1 claude-profile.cmd; do
+for f in VERSION \
+    claude-profile.sh claude-profile-init.ps1 claude-profile.cmd \
+    claude-profile.fish \
+    agent-profile.sh agent-profile-init.ps1 agent-profile.cmd \
+    agent-profile.fish \
+    agy.cmd antigravity.cmd antigravity-ide.cmd codex.cmd; do
     if [ ! -f "$f" ]; then
         echo "error: $f not found in current directory (run from repo root)" >&2
         exit 1

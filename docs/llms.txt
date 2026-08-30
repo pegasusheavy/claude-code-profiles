@@ -14,7 +14,7 @@ Each profile is a complete, isolated Claude Code configuration directory contain
 
 ## Install
 
-- Linux / macOS / WSL: `curl -fsSL https://raw.githubusercontent.com/pegasusheavy/claude-code-profiles/main/install.sh | sh`
+- Linux / macOS / WSL / Fish: `curl -fsSL https://raw.githubusercontent.com/pegasusheavy/claude-code-profiles/main/install.sh | sh` (the installer detects Fish and sources native adapters)
 - Windows PowerShell: `irm https://raw.githubusercontent.com/pegasusheavy/claude-code-profiles/main/install.ps1 | iex`
 
 ## Commands
@@ -30,10 +30,56 @@ Each profile is a complete, isolated Claude Code configuration directory contain
 - `claude-profile delete <name>`: Delete a profile (with confirmation)
 - `claude-profile help`: Show help
 
+## Antigravity and Codex
+
+- `agent-profile copy antigravity hafez`: snapshot the current Antigravity CLI and GUI data
+- `agent-profile copy antigravity default hafez`: copy the managed default profile
+- `agent-profile default antigravity hafez`: set the Antigravity default
+- `agent-profile use antigravity hafez`: select a profile for the current shell
+- `agent-profile restart antigravity`: open a fresh GUI window using the selected profile, alongside any window already running
+- `agent-profile copy codex work`: snapshot current Codex data
+- `agent-profile default codex work`: set the Codex default
+
+`agy`, `antigravity`, `antigravity-ide`, and `codex` wrappers launch with the
+selected profile. Antigravity uses a child `HOME` rooted at `<profile>/home`
+for the CLI and the GUI alike -- it resolves its account, conversations, and
+agent state from `~/.gemini`, so `HOME` is what switches profiles
+(`USERPROFILE` on Windows, where the app reads that instead). The GUI also
+gets `--user-data-dir=<profile>/gui-user-data`, which moves Chromium's user
+data and singleton lock so two profiles can run at once. On macOS the GUI
+adapter auto-detects `/Applications/Antigravity.app` and
+`~/Applications/Antigravity.app` when no GUI command is on `PATH`, and starts
+the bundle with `open -n --env HOME=... -a <bundle> --args --user-data-dir=...`
+as a separate, detached app instance; `agent-profile restart antigravity` adds
+`--new-window` only in PATH-command mode -- any launcher resolved from `PATH`
+or from `AGENT_PROFILE_ANTIGRAVITY_GUI_COMMAND`, such as a VS Code derived
+`antigravity-ide` -- never for the app bundle, which ignores that flag. Codex
+uses `CODEX_HOME`. Because macOS resolves the login keychain at
+`$HOME/Library/Keychains`, a redirected `HOME` would leave the child without
+one ("A keychain cannot be found to store antigravity"), so on macOS both
+launchers link `<profile>/home/Library/Keychains` to the real keychain
+directory, never clobbering an existing entry; that shares the whole keychain
+directory, where what Antigravity stores is Chromium's "Antigravity Safe
+Storage" key for the local cookie store, while the account stays per-profile
+in `~/.gemini`. Windows and Linux get no link.
+Profile snapshots omit Chromium's `SingletonLock`, `SingletonCookie`, and
+`SingletonSocket` files -- a profile copied before that pruning still holds
+them, and deleting the three files fixes it. OS keyring credentials are not
+copied.
+
+Fish is supported through native sourceable adapters. Source
+`claude-profile.fish` and `agent-profile.fish` from
+`~/.config/fish/config.fish`; do not source the POSIX `.sh` adapters from Fish.
+
 ## Source Code
 
 - [claude-profile.sh](https://github.com/pegasusheavy/claude-code-profiles/blob/main/claude-profile.sh): POSIX shell implementation (bash, zsh)
+- [claude-profile.fish](https://github.com/pegasusheavy/claude-code-profiles/blob/main/claude-profile.fish): native Fish implementation
 - [claude-profile-init.ps1](https://github.com/pegasusheavy/claude-code-profiles/blob/main/claude-profile-init.ps1): PowerShell implementation
 - [claude-profile.cmd](https://github.com/pegasusheavy/claude-code-profiles/blob/main/claude-profile.cmd): Windows cmd.exe batch implementation
+- [agent-profile.sh](https://github.com/pegasusheavy/claude-code-profiles/blob/main/agent-profile.sh): Antigravity and Codex POSIX wrappers
+- [agent-profile.fish](https://github.com/pegasusheavy/claude-code-profiles/blob/main/agent-profile.fish): Antigravity and Codex native Fish wrappers
+- [agent-profile-init.ps1](https://github.com/pegasusheavy/claude-code-profiles/blob/main/agent-profile-init.ps1): Antigravity and Codex PowerShell wrappers
+- [agent-profile.cmd](https://github.com/pegasusheavy/claude-code-profiles/blob/main/agent-profile.cmd): Antigravity and Codex cmd.exe manager
 - [install.sh](https://github.com/pegasusheavy/claude-code-profiles/blob/main/install.sh): Unix installer
 - [install.ps1](https://github.com/pegasusheavy/claude-code-profiles/blob/main/install.ps1): Windows installer

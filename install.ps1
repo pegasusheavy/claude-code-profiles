@@ -8,7 +8,7 @@
 $ErrorActionPreference = 'Stop'
 
 $RepoBase = 'https://raw.githubusercontent.com/pegasusheavy/claude-code-profiles/main'
-$Scripts = @('claude-profile-init.ps1', 'claude-profile.cmd')
+$Scripts = @('claude-profile-init.ps1', 'claude-profile.cmd', 'agent-profile-init.ps1', 'agent-profile.cmd', 'agy.cmd', 'antigravity.cmd', 'antigravity-ide.cmd', 'codex.cmd')
 
 function Write-Step($msg) { Write-Host "`n=> $msg" -ForegroundColor Cyan }
 function Write-Info($msg) { Write-Host "  $msg" }
@@ -120,6 +120,14 @@ if ($ProfileContent -and $ProfileContent.Contains('claude-profile-init.ps1')) {
     Write-Info "Added source line to $ProfilePath"
 }
 
+$AgentSourceLine = ". '$installDir\agent-profile-init.ps1'"
+if ($ProfileContent -and $ProfileContent.Contains('agent-profile-init.ps1')) {
+    Write-Info 'Agent profile source line already in $PROFILE'
+} else {
+    Add-Content -Path $ProfilePath -Value "`n# agent-profile: manage Antigravity and Codex profiles`n$AgentSourceLine"
+    Write-Info "Added agent profile source line to $ProfilePath"
+}
+
 Write-Step 'Done!'
 Write-Info ''
 Write-Info 'Restart PowerShell (or run: . $PROFILE) then:'
@@ -127,6 +135,10 @@ Write-Info ''
 Write-Info '  claude-profile create work     # Create a profile'
 Write-Info '  claude-profile default work    # Set it as default'
 Write-Info '  claude                         # Runs with the active profile'
+Write-Info ''
+Write-Info '  agent-profile copy antigravity hafez  # Snapshot the current Antigravity login'
+Write-Info '  agent-profile default antigravity hafez'
+Write-Info '  agy                               # Runs with the active Antigravity profile'
 Write-Info ''
 Write-Info 'For cmd.exe, use: call claude-profile use work'
 Write-Info ''
